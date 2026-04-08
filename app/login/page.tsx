@@ -20,6 +20,22 @@ export default function LoginPage() {
   
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [resetMessage, setResetMessage] = useState("")
+
+  async function handleResetPasswords() {
+    setResetMessage("Resetando senhas...")
+    try {
+      const res = await fetch("/api/reset-passwords")
+      const data = await res.json()
+      if (data.success) {
+        setResetMessage(`Sucesso! ${data.message}`)
+      } else {
+        setResetMessage(`Erro: ${data.error}`)
+      }
+    } catch {
+      setResetMessage("Erro ao conectar com servidor")
+    }
+  }
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -113,6 +129,17 @@ export default function LoginPage() {
         <p className="text-center text-sm text-muted-foreground mt-6">
           Sistema de Relatórios Técnicos
         </p>
+
+        {/* Botão temporário para resetar senhas - REMOVER DEPOIS */}
+        <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+          <p className="text-xs text-yellow-500 mb-2">Configuração inicial (remover depois):</p>
+          <Button variant="outline" size="sm" onClick={handleResetPasswords} className="w-full">
+            Resetar Senhas (123456)
+          </Button>
+          {resetMessage && (
+            <p className="text-xs text-center mt-2 text-muted-foreground">{resetMessage}</p>
+          )}
+        </div>
       </div>
     </div>
   )
