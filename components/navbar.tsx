@@ -1,9 +1,9 @@
 "use client"
 
 import Link from "next/link"
-import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
 import { useAuth } from "@/components/auth-provider"
+import { Logo } from "@/components/logo"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -31,18 +31,11 @@ export function Navbar() {
   ]
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-primary/10 bg-background/80 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 w-full border-b border-primary/10 bg-background/60 backdrop-blur-xl">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center gap-3">
-            <Image 
-              src="/logo-rarotec.png" 
-              alt="Rarotec" 
-              width={120} 
-              height={40} 
-              className="h-10 w-auto object-contain"
-              priority
-            />
+          <Link href="/">
+            <Logo size="sm" />
           </Link>
 
           <nav className="hidden md:flex items-center gap-1">

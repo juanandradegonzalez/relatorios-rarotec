@@ -2,8 +2,9 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import Image from "next/image"
 import { useAuth } from "@/components/auth-provider"
+import { AnimatedBackground } from "@/components/animated-background"
+import { Logo } from "@/components/logo"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -72,36 +73,22 @@ export default function LoginPage() {
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <AnimatedBackground />
+        <Loader2 className="h-8 w-8 animate-spin text-primary relative z-10" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
-      {/* Background interativo */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-30" />
-      <div className="absolute inset-0 bg-gradient-radial" />
-      <div className="absolute inset-0 bg-gradient-radial-bottom" />
-      
-      {/* Elementos decorativos flutuantes */}
-      <div className="absolute top-20 left-10 w-72 h-72 bg-primary/5 rounded-full blur-3xl animate-pulse-glow" />
-      <div className="absolute bottom-20 right-10 w-96 h-96 bg-accent/5 rounded-full blur-3xl animate-pulse-glow" style={{ animationDelay: '2s' }} />
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      <AnimatedBackground />
       
       <div className="w-full max-w-md relative z-10">
         <div className="flex flex-col items-center mb-8">
-          <Image 
-            src="/logo-rarotec.png" 
-            alt="Rarotec" 
-            width={180} 
-            height={60} 
-            className="h-16 w-auto object-contain mb-4"
-            priority
-          />
-          <p className="text-sm text-muted-foreground">Sistema de Relatórios Técnicos</p>
+          <Logo size="lg" showTagline />
         </div>
 
-        <Card className="border-border/50 shadow-2xl shadow-primary/5 bg-card/80 backdrop-blur-sm card-glow">
+        <Card className="border-primary/20 shadow-2xl shadow-primary/10 bg-card/70 backdrop-blur-xl">
           <CardHeader className="space-y-1 pb-4">
             <CardTitle className="text-xl text-center">Bem-vindo</CardTitle>
             <CardDescription className="text-center">
@@ -134,6 +121,7 @@ export default function LoginPage() {
                       onChange={(e) => setLoginEmail(e.target.value)}
                       required
                       disabled={isLoading}
+                      className="bg-background/50"
                     />
                   </div>
                   <div className="space-y-2">
@@ -146,6 +134,7 @@ export default function LoginPage() {
                       onChange={(e) => setLoginPassword(e.target.value)}
                       required
                       disabled={isLoading}
+                      className="bg-background/50"
                     />
                   </div>
                   <Button type="submit" className="w-full" disabled={isLoading}>
@@ -173,6 +162,7 @@ export default function LoginPage() {
                       onChange={(e) => setRegisterName(e.target.value)}
                       required
                       disabled={isLoading}
+                      className="bg-background/50"
                     />
                   </div>
                   <div className="space-y-2">
@@ -185,6 +175,7 @@ export default function LoginPage() {
                       onChange={(e) => setRegisterEmail(e.target.value)}
                       required
                       disabled={isLoading}
+                      className="bg-background/50"
                     />
                   </div>
                   <div className="space-y-2">
@@ -197,6 +188,7 @@ export default function LoginPage() {
                       onChange={(e) => setRegisterPassword(e.target.value)}
                       required
                       disabled={isLoading}
+                      className="bg-background/50"
                     />
                   </div>
                   <div className="space-y-2">
@@ -209,6 +201,7 @@ export default function LoginPage() {
                       onChange={(e) => setRegisterConfirmPassword(e.target.value)}
                       required
                       disabled={isLoading}
+                      className="bg-background/50"
                     />
                   </div>
                   <Button type="submit" className="w-full" disabled={isLoading}>
@@ -228,7 +221,7 @@ export default function LoginPage() {
         </Card>
 
         <p className="text-center text-sm text-muted-foreground mt-6">
-          Rarotec Tecnologia - Sistema de Relatórios Técnicos
+          Sistema de Relatórios Técnicos
         </p>
       </div>
     </div>

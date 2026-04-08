@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/auth-provider"
 import { Navbar } from "@/components/navbar"
+import { AnimatedBackground } from "@/components/animated-background"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -141,16 +142,8 @@ export default function HistoricoPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background relative">
-      {/* Background interativo */}
-      <div className="fixed inset-0 bg-grid-pattern opacity-20 pointer-events-none" />
-      <div className="fixed inset-0 bg-gradient-radial pointer-events-none" />
-      <div className="fixed inset-0 bg-gradient-radial-bottom pointer-events-none" />
-      
-      {/* Elementos decorativos */}
-      <div className="fixed top-40 -left-20 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-pulse-glow pointer-events-none" />
-      <div className="fixed bottom-40 -right-20 w-80 h-80 bg-accent/5 rounded-full blur-3xl animate-pulse-glow pointer-events-none" style={{ animationDelay: '2s' }} />
-      
+    <div className="min-h-screen relative">
+      <AnimatedBackground />
       <Navbar />
 
       <main className="container py-8 px-4 relative z-10">
