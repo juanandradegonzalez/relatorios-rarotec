@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,6 +11,7 @@ import { DatePickerSimple } from "@/components/date-picker-simple"
 import { FileUploader } from "@/components/file-uploader"
 import { generatePDF } from "@/lib/pdf-generator"
 import { useToast } from "@/hooks/use-toast"
+import { Stepper, StepContent } from "@/components/ui/stepper"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,17 +26,17 @@ import {
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form"
 import { Card, CardContent } from "@/components/ui/card"
-import { Loader2, Plus, Trash2, Search, Flag } from "lucide-react"
+import { Loader2, Plus, Trash2, Search, Flag, ChevronLeft, ChevronRight, FileCheck, Mail } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { estados, estadosBandeiras, getMunicipiosPorEstado } from "@/lib/estados-municipios"
+import { cn } from "@/lib/utils"
 
-// Removendo as validações obrigatórias
 const formSchema = z.object({
   emails: z.string().optional(),
-  estado: z.string().optional(),
-  municipio: z.string().optional(),
+  estado: z.string().min(1, "Selecione o estado"),
+  municipio: z.string().min(1, "Selecione o município"),
   entidadesOrgaos: z
     .array(
       z.object({
@@ -44,14 +44,14 @@ const formSchema = z.object({
         cnpj: z.string(),
       }),
     )
-    .optional(),
-  modulos: z.array(z.string()).optional(),
+    .min(1, "Adicione pelo menos uma entidade"),
+  modulos: z.array(z.string()).min(1, "Selecione pelo menos um módulo"),
   outroModulo: z.string().optional(),
-  servicosRealizados: z.array(z.string()).optional(),
+  servicosRealizados: z.array(z.string()).min(1, "Selecione pelo menos um serviço"),
   outroServico: z.string().optional(),
-  resumoServicos: z.string().optional(),
-  dataServico: z.date().optional(),
-  tecnicos: z.array(z.string()).optional(),
+  resumoServicos: z.string().min(10, "Descreva os serviços realizados (mínimo 10 caracteres)"),
+  dataServico: z.date({ required_error: "Selecione a data do serviço" }),
+  tecnicos: z.array(z.string()).min(1, "Selecione pelo menos um técnico"),
   clienteNomeCpf: z
     .array(
       z.object({
@@ -64,8 +64,91 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>
 
+const steps = [
+  { title: "Localização", description: "Estado e município" },
+  { title: "Entidades", description: "Órgãos e CNPJs" },
+  { title: "Serviços", description: "Módulos e atividades" },
+  { title: "Detalhes", description: "Resumo e data" },
+  { title: "Equipe", description: "Técnicos responsáveis" },
+  { title: "Anexos", description: "Documentos e email" },
+]
+
+const entidadesOptions = [
+  "Prefeitura Municipal",
+  "Câmara Municipal",
+  "Instituto de Previdência",
+  "Secretaria/Fundo de Saúde",
+  "Secretaria/Fundo de Educação",
+  "Secretaria/Fundo de Assistência Social (Idosos, Criança e Adolescente)",
+  "Secretaria/Fundo de Transporte",
+  "Secretaria/Fundo de Agricultura e Abastecimento",
+  "Secretaria/Fundo de Energia e Iluminação",
+  "Secretaria/Fundo de Águas e Esgoto",
+  "Consórcio",
+  "Governo Estadual (Executivo, Legislativo e Autarquia)",
+  "Escritório Contábil/Jurídico",
+]
+
+const modulosOptions = [
+  "Contabilidade",
+  "Controle Interno",
+  "Assinatura Digital",
+  "Recursos Humanos",
+  "Portal do Servidor",
+  "Patrimônio",
+  "Almoxarifado",
+  "Contratos e Convênios",
+  "Plano de Contratações Anuais",
+  "Licitação e Pregão Gerencial",
+  "Frota de Veículos",
+  "Protocolo",
+  "Processos e Documentos Digitais (Município Digital)",
+  "Gerenciador Eletrônico de Documentos",
+  "Aplicativo de Business Intelligence",
+  "Tributos",
+  "Nota Fiscal Eletrônica",
+  "Rimob",
+  "PagTributos",
+  "Portal da Transparência",
+  "Outro",
+]
+
+const servicosOptions = [
+  "Visita Técnica",
+  "Treinamento",
+  "Reunião",
+  "Cadastro de Usuário",
+  "Atendimento Remoto",
+  "Outro",
+]
+
+const tecnicosOptions = [
+  "Alan Fernandes",
+  "Michaelly Brandão",
+  "Altarlê Macedo",
+  "Danielle Tavares",
+  "Fábio Júnior",
+  "Felipe Santos",
+  "Gerlane Dino",
+  "Iago Folgado",
+  "Igor Umeda",
+  "Jairo Filho",
+  "Jeferson Santana",
+  "Jhennyfer França",
+  "Leobaldo Henrique",
+  "Lúcio Monteiro",
+  "Larrisa Ferreira",
+  "Manoel Cabral",
+  "Itiberê Mariovith",
+  "Vivian Lima",
+  "Felipe Falleiros",
+  "Juan Gonzalez",
+  "Eugênio Albuquerque",
+]
+
 export function FormServicos() {
   const { toast } = useToast()
+  const [currentStep, setCurrentStep] = useState(0)
   const [isGenerating, setIsGenerating] = useState(false)
   const [anexos, setAnexos] = useState<File[]>([])
   const [clienteTemp, setClienteTemp] = useState({ nome: "", cpf: "" })
@@ -93,91 +176,16 @@ export function FormServicos() {
     },
   })
 
-  // Atualiza os municípios quando o estado muda
   useEffect(() => {
     const estadoSelecionado = form.watch("estado")
     if (estadoSelecionado) {
       const municipios = getMunicipiosPorEstado(estadoSelecionado)
       setMunicipiosDisponiveis(municipios)
-      // Limpa o município selecionado quando o estado muda
       form.setValue("municipio", "")
     } else {
       setMunicipiosDisponiveis([])
     }
   }, [form.watch("estado"), form])
-
-  const entidadesOptions = [
-    "Prefeitura Municipal",
-    "Câmara Municipal",
-    "Instituto de Previdência",
-    "Secretaria/Fundo de Saúde",
-    "Secretaria/Fundo de Educação",
-    "Secretaria/Fundo de Assistência Social (Idosos, Criança e Adolescente)",
-    "Secretaria/Fundo de Transporte",
-    "Secretaria/Fundo de Agricultura e Abastecimento",
-    "Secretaria/Fundo de Energia e Iluminação",
-    "Secretaria/Fundo de Águas e Esgoto",
-    "Consórcio",
-    "Governo Estadual (Executivo, Legislativo e Autarquia)",
-    "Escritório Contábil/Jurídico",
-  ]
-
-  const modulosOptions = [
-    "Contabilidade",
-    "Controle Interno",
-    "Assinatura Digital",
-    "Recursos Humanos",
-    "Portal do Servidor",
-    "Patrimônio",
-    "Almoxarifado",
-    "Contratos e Convênios",
-    "Plano de Contratações Anuais",
-    "Licitação e Pregão Gerencial",
-    "Frota de Veículos",
-    "Protocolo",
-    "Processos e Documentos Digitais (Município Digital)",
-    "Gerenciador Eletrônico de Documentos",
-    "Aplicativo de Business Intelligence",
-    "Tributos",
-    "Nota Fiscal Eletrônica",
-    "Rimob",
-    "PagTributos",
-    "Portal da Transparência",
-    "Outro",
-  ]
-
-  const servicosOptions = [
-    "Visita Técnica",
-    "Treinamento",
-    "Reunião",
-    "Cadastro de Usuário",
-    "Atendimento Remoto",
-    "Outro",
-  ]
-
-  const tecnicosOptions = [
-    "Alan Fernandes",
-    "Michaelly Brandão",
-    "Altarlê Macedo",
-    "Danielle Tavares",
-    "Fábio Júnior",
-    "Felipe Santos",
-    "Gerlane Dino",
-    "Iago Folgado",
-    "Igor Umeda",
-    "Jairo Filho",
-    "Jeferson Santana",
-    "Jhennyfer França",
-    "Leobaldo Henrique",
-    "Lúcio Monteiro",
-    "Larrisa Ferreira",
-    "Manoel Cabral",
-    "Itiberê Mariovith",
-    "Vivian Lima",
-    "Felipe Falleiros",
-    "Juan Gonzalez",
-    "Eugênio Albuquerque",
-  ]
 
   const handleFileChange = (files: File[]) => {
     setAnexos(files)
@@ -218,7 +226,7 @@ export function FormServicos() {
       setEntidadeTemp({ entidade: "", cnpj: "" })
     } else {
       toast({
-        title: "Erro",
+        title: "Campos obrigatórios",
         description: "Selecione a entidade e informe o CNPJ",
         variant: "destructive",
       })
@@ -240,7 +248,7 @@ export function FormServicos() {
       setClienteTemp({ nome: "", cpf: "" })
     } else {
       toast({
-        title: "Erro",
+        title: "Campos obrigatórios",
         description: "Preencha o nome e CPF do cliente",
         variant: "destructive",
       })
@@ -255,12 +263,39 @@ export function FormServicos() {
     )
   }
 
+  const validateStep = async (step: number): Promise<boolean> => {
+    const fieldsToValidate: (keyof FormValues)[][] = [
+      ["estado", "municipio"],
+      ["entidadesOrgaos"],
+      ["modulos", "servicosRealizados"],
+      ["resumoServicos", "dataServico"],
+      ["tecnicos"],
+      [],
+    ]
+
+    const fields = fieldsToValidate[step]
+    if (fields.length === 0) return true
+
+    const result = await form.trigger(fields)
+    return result
+  }
+
+  const nextStep = async () => {
+    const isValid = await validateStep(currentStep)
+    if (isValid && currentStep < steps.length - 1) {
+      setCurrentStep(currentStep + 1)
+    }
+  }
+
+  const prevStep = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1)
+    }
+  }
+
   const onSubmit = async (data: FormValues) => {
     try {
       setIsGenerating(true)
-
-      // Adicionar um log para debug
-      console.log("Gerando relatório com dados:", data)
 
       const result = await generatePDF({
         tipoRelatorio: "servicos",
@@ -289,20 +324,7 @@ export function FormServicos() {
   }
 
   const limparFormulario = () => {
-    form.reset({
-      emails: "",
-      estado: "",
-      municipio: "",
-      entidadesOrgaos: [],
-      modulos: [],
-      outroModulo: "",
-      servicosRealizados: [],
-      outroServico: "",
-      resumoServicos: "",
-      dataServico: undefined,
-      tecnicos: [],
-      clienteNomeCpf: [],
-    })
+    form.reset()
     setAnexos([])
     setClienteTemp({ nome: "", cpf: "" })
     setEntidadeTemp({ entidade: "", cnpj: "" })
@@ -310,23 +332,20 @@ export function FormServicos() {
     setMunicipioBusca("")
     setMunicipiosDisponiveis([])
     setImagemErros({})
+    setCurrentStep(0)
   }
 
-  // Filtrar estados com base na busca
   const estadosFiltrados = estadoBusca
     ? estados.filter((estado) => estado.toLowerCase().includes(estadoBusca.toLowerCase()))
     : estados
 
-  // Filtrar municípios com base na busca
   const municipiosFiltrados = municipioBusca
     ? municipiosDisponiveis.filter((municipio) => municipio.toLowerCase().includes(municipioBusca.toLowerCase()))
     : municipiosDisponiveis
 
-  // Função para renderizar a bandeira ou um ícone de fallback
   const renderizarBandeira = (estado: string) => {
     if (imagemErros[estado]) {
-      // Se a imagem falhou, mostrar um ícone de bandeira como fallback
-      return <Flag className="h-4 w-4 mr-2 text-gray-500" />
+      return <Flag className="h-4 w-4 mr-2 text-muted-foreground" />
     }
 
     return (
@@ -335,8 +354,6 @@ export function FormServicos() {
         alt={`Bandeira de ${estado}`}
         className="w-6 h-4 mr-2 object-contain"
         onError={() => {
-          console.log(`Erro ao carregar bandeira: ${estadosBandeiras[estado]}`)
-          // Marcar esta imagem como com erro para usar o fallback
           setImagemErros((prev) => ({ ...prev, [estado]: true }))
         }}
       />
@@ -345,401 +362,454 @@ export function FormServicos() {
 
   return (
     <Form {...form}>
-      <form ref={formRef} onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="bg-blue-50 p-4 rounded-lg mb-6 border border-blue-200">
-          <h3 className="text-blue-800 font-medium mb-2">Instruções</h3>
-          <p className="text-blue-700 text-sm">
-            Preencha os campos do formulário para gerar o relatório técnico de serviços. Você poderá anexar documentos
-            relevantes ao final do formulário.
-          </p>
-        </div>
+      <form ref={formRef} onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <Stepper steps={steps} currentStep={currentStep} />
 
-        <FormField
-          control={form.control}
-          name="emails"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Informe seu(s) email(s)</FormLabel>
-              <FormControl>
-                <Input placeholder="exemplo@email.com, outro@email.com" {...field} />
-              </FormControl>
-              <FormMessage className="text-red-500" />
-            </FormItem>
-          )}
-        />
-
-        <div className="space-y-4 bg-gray-50 p-4 rounded-lg border border-gray-200 mb-2">
-          <h3 className="text-lg font-medium text-gray-800">Estado e Município</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="estado"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Estado</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o estado">
-                          {field.value && (
-                            <div className="flex items-center">
-                              {renderizarBandeira(field.value)}
-                              {field.value}
-                            </div>
-                          )}
-                        </SelectValue>
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <div className="flex items-center px-3 pb-2">
-                        <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-                        <Input
-                          placeholder="Buscar estado..."
-                          className="h-8 w-full"
-                          value={estadoBusca}
-                          onChange={(e) => setEstadoBusca(e.target.value)}
-                        />
-                      </div>
-                      {estadosFiltrados.map((estado) => (
-                        <SelectItem key={estado} value={estado}>
-                          <div className="flex items-center">
-                            {renderizarBandeira(estado)}
-                            {estado}
+        {/* Step 0: Localização */}
+        {currentStep === 0 && (
+          <StepContent>
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField
+                  control={form.control}
+                  name="estado"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Estado *</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger className={cn(!field.value && "text-muted-foreground")}>
+                            <SelectValue placeholder="Selecione o estado">
+                              {field.value && (
+                                <div className="flex items-center">
+                                  {renderizarBandeira(field.value)}
+                                  {field.value}
+                                </div>
+                              )}
+                            </SelectValue>
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <div className="flex items-center px-3 pb-2">
+                            <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                            <Input
+                              placeholder="Buscar estado..."
+                              className="h-8 w-full"
+                              value={estadoBusca}
+                              onChange={(e) => setEstadoBusca(e.target.value)}
+                            />
                           </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage className="text-red-500" />
-                </FormItem>
-              )}
-            />
+                          {estadosFiltrados.map((estado) => (
+                            <SelectItem key={estado} value={estado}>
+                              <div className="flex items-center">
+                                {renderizarBandeira(estado)}
+                                {estado}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            <FormField
-              control={form.control}
-              name="municipio"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Município</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value} disabled={!form.watch("estado")}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o município" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <div className="flex items-center px-3 pb-2">
-                        <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-                        <Input
-                          placeholder="Buscar município..."
-                          className="h-8 w-full"
-                          value={municipioBusca}
-                          onChange={(e) => setMunicipioBusca(e.target.value)}
-                        />
-                      </div>
-                      {municipiosFiltrados.map((municipio) => (
-                        <SelectItem key={municipio} value={municipio}>
-                          {municipio}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage className="text-red-500" />
-                </FormItem>
-              )}
-            />
-          </div>
-        </div>
-
-        <div className="space-y-4 bg-gray-50 p-4 rounded-lg border border-gray-200 mb-2">
-          <h3 className="text-lg font-medium text-gray-800">Entidade(s) e CNPJ(s)</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="md:col-span-1">
-              <Select
-                value={entidadeTemp.entidade}
-                onValueChange={(value) => setEntidadeTemp({ ...entidadeTemp, entidade: value })}
-                disabled={!form.watch("municipio")}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione a entidade" />
-                </SelectTrigger>
-                <SelectContent>
-                  {entidadesOptions.map((entidade) => (
-                    <SelectItem key={entidade} value={entidade}>
-                      {entidade}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="md:col-span-1">
-              <Input
-                placeholder="00.000.000/0000-00"
-                value={entidadeTemp.cnpj}
-                onChange={handleCNPJChange}
-                maxLength={18}
-                disabled={!form.watch("municipio")}
-              />
-            </div>
-            <div className="md:col-span-1">
-              <Button type="button" onClick={adicionarEntidade} className="w-full" disabled={!form.watch("municipio")}>
-                Adicionar Órgão
-              </Button>
-            </div>
-          </div>
-
-          {form.watch("entidadesOrgaos")?.length > 0 && (
-            <Card>
-              <CardContent className="p-4">
-                <h3 className="font-medium mb-2">Entidades adicionadas:</h3>
-                <ul className="space-y-2">
-                  {form.watch("entidadesOrgaos").map((item, index) => (
-                    <li key={index} className="flex justify-between items-center border-b pb-2">
-                      <span>
-                        {item.entidade} - {item.cnpj}
-                      </span>
-                      <Button type="button" variant="ghost" size="sm" onClick={() => removerEntidade(index)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-
-        <div className="space-y-4 bg-gray-50 p-4 rounded-lg border border-gray-200 mb-2">
-          <h3 className="text-lg font-medium text-gray-800">Detalhes do Serviço</h3>
-
-          {/* Campo de módulos */}
-          <FormField
-            control={form.control}
-            name="modulos"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Módulo(s)</FormLabel>
-                <FormControl>
-                  <MultiSelectSimple
-                    options={modulosOptions.map((option) => ({
-                      label: option,
-                      value: option,
-                    }))}
-                    selected={field.value || []}
-                    onChange={field.onChange}
-                    placeholder="Selecione os módulos"
-                  />
-                </FormControl>
-                <FormMessage className="text-red-500" />
-              </FormItem>
-            )}
-          />
-
-          {/* Campo de outro módulo */}
-          {form.watch("modulos")?.includes("Outro") && (
-            <FormField
-              control={form.control}
-              name="outroModulo"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Especifique outro módulo</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Descreva o módulo" {...field} />
-                  </FormControl>
-                  <FormMessage className="text-red-500" />
-                </FormItem>
-              )}
-            />
-          )}
-
-          {/* Campo de serviços realizados */}
-          <FormField
-            control={form.control}
-            name="servicosRealizados"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Serviço(s) Realizado(s)</FormLabel>
-                <FormControl>
-                  <MultiSelectSimple
-                    options={servicosOptions.map((option) => ({
-                      label: option,
-                      value: option,
-                    }))}
-                    selected={field.value || []}
-                    onChange={field.onChange}
-                    placeholder="Selecione os serviços"
-                  />
-                </FormControl>
-                <FormMessage className="text-red-500" />
-              </FormItem>
-            )}
-          />
-
-          {/* Campo de outro serviço */}
-          {form.watch("servicosRealizados")?.includes("Outro") && (
-            <FormField
-              control={form.control}
-              name="outroServico"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Especifique outro serviço</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Descreva o serviço" {...field} />
-                  </FormControl>
-                  <FormMessage className="text-red-500" />
-                </FormItem>
-              )}
-            />
-          )}
-        </div>
-
-        <div className="space-y-4 bg-gray-50 p-4 rounded-lg border border-gray-200 mb-2">
-          <h3 className="text-lg font-medium text-gray-800">Resumo e Data</h3>
-
-          {/* Campo de resumo de serviços */}
-          <FormField
-            control={form.control}
-            name="resumoServicos"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Resumo do(s) Serviço(s) Realizado(s)</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Descreva detalhadamente os serviços realizados"
-                    className="min-h-[150px] resize-y"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage className="text-red-500" />
-              </FormItem>
-            )}
-          />
-
-          {/* Campo de data do serviço */}
-          <FormField
-            control={form.control}
-            name="dataServico"
-            render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel>Data da Prestação do Serviço</FormLabel>
-                <DatePickerSimple date={field.value} setDate={field.onChange} />
-                <FormMessage className="text-red-500" />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <div className="space-y-4 bg-gray-50 p-4 rounded-lg border border-gray-200 mb-2">
-          <h3 className="text-lg font-medium text-gray-800">Técnicos</h3>
-
-          {/* Campo de técnicos especializados */}
-          <FormField
-            control={form.control}
-            name="tecnicos"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Técnico(s) Especializado(s)</FormLabel>
-                <FormControl>
-                  <MultiSelectSimple
-                    options={tecnicosOptions.map((option) => ({
-                      label: option,
-                      value: option,
-                    }))}
-                    selected={field.value || []}
-                    onChange={field.onChange}
-                    placeholder="Selecione os técnicos"
-                  />
-                </FormControl>
-                <FormMessage className="text-red-500" />
-              </FormItem>
-            )}
-          />
-
-          {/* Campo de técnicos do cliente */}
-          <div className="space-y-4">
-            <Label>Nome e CPF do(s) Técnico(s)/Gestor(es) do Cliente</Label>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
-              <div className="md:col-span-1">
-                <Input
-                  placeholder="Nome"
-                  value={clienteTemp.nome}
-                  onChange={(e) => setClienteTemp({ ...clienteTemp, nome: e.target.value })}
+                <FormField
+                  control={form.control}
+                  name="municipio"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Município *</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value} disabled={!form.watch("estado")}>
+                        <FormControl>
+                          <SelectTrigger className={cn(!field.value && "text-muted-foreground")}>
+                            <SelectValue placeholder={form.watch("estado") ? "Selecione o município" : "Selecione primeiro o estado"} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <div className="flex items-center px-3 pb-2">
+                            <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                            <Input
+                              placeholder="Buscar município..."
+                              className="h-8 w-full"
+                              value={municipioBusca}
+                              onChange={(e) => setMunicipioBusca(e.target.value)}
+                            />
+                          </div>
+                          {municipiosFiltrados.map((municipio) => (
+                            <SelectItem key={municipio} value={municipio}>
+                              {municipio}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
               </div>
-              <div className="md:col-span-1">
-                <Input placeholder="CPF" value={clienteTemp.cpf} onChange={handleCPFChange} maxLength={14} />
+            </div>
+          </StepContent>
+        )}
+
+        {/* Step 1: Entidades */}
+        {currentStep === 1 && (
+          <StepContent>
+            <div className="space-y-6">
+              <div>
+                <Label className="text-base">Adicionar Entidade *</Label>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Adicione os órgãos/entidades envolvidos no serviço
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Select
+                    value={entidadeTemp.entidade}
+                    onValueChange={(value) => setEntidadeTemp({ ...entidadeTemp, entidade: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a entidade" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {entidadesOptions.map((entidade) => (
+                        <SelectItem key={entidade} value={entidade}>
+                          {entidade}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    placeholder="00.000.000/0000-00"
+                    value={entidadeTemp.cnpj}
+                    onChange={handleCNPJChange}
+                    maxLength={18}
+                  />
+                  <Button type="button" onClick={adicionarEntidade} variant="secondary">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Adicionar
+                  </Button>
+                </div>
               </div>
-              <div className="md:col-span-1">
-                <Button type="button" onClick={adicionarCliente} className="w-full bg-green-600 hover:bg-green-700">
-                  <Plus className="h-4 w-4 mr-2" /> Adicionar
-                </Button>
+
+              {form.watch("entidadesOrgaos")?.length > 0 && (
+                <Card className="border-border/50">
+                  <CardContent className="p-4">
+                    <h4 className="font-medium mb-3 text-sm text-muted-foreground">Entidades adicionadas:</h4>
+                    <ul className="space-y-2">
+                      {form.watch("entidadesOrgaos")?.map((item, index) => (
+                        <li key={index} className="flex justify-between items-center p-3 rounded-lg bg-muted/50">
+                          <span className="text-sm">
+                            <span className="font-medium">{item.entidade}</span>
+                            <span className="text-muted-foreground ml-2">CNPJ: {item.cnpj}</span>
+                          </span>
+                          <Button type="button" variant="ghost" size="sm" onClick={() => removerEntidade(index)}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              )}
+
+              {form.formState.errors.entidadesOrgaos && (
+                <p className="text-sm text-destructive">{form.formState.errors.entidadesOrgaos.message}</p>
+              )}
+            </div>
+          </StepContent>
+        )}
+
+        {/* Step 2: Serviços */}
+        {currentStep === 2 && (
+          <StepContent>
+            <div className="space-y-6">
+              <FormField
+                control={form.control}
+                name="modulos"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Módulo(s) *</FormLabel>
+                    <FormDescription>Selecione os módulos relacionados ao serviço</FormDescription>
+                    <FormControl>
+                      <MultiSelectSimple
+                        options={modulosOptions.map((option) => ({
+                          label: option,
+                          value: option,
+                        }))}
+                        selected={field.value || []}
+                        onChange={field.onChange}
+                        placeholder="Selecione os módulos"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {form.watch("modulos")?.includes("Outro") && (
+                <FormField
+                  control={form.control}
+                  name="outroModulo"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Especifique outro módulo</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Descreva o módulo" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              <FormField
+                control={form.control}
+                name="servicosRealizados"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Serviço(s) Realizado(s) *</FormLabel>
+                    <FormDescription>Selecione os tipos de serviço executados</FormDescription>
+                    <FormControl>
+                      <MultiSelectSimple
+                        options={servicosOptions.map((option) => ({
+                          label: option,
+                          value: option,
+                        }))}
+                        selected={field.value || []}
+                        onChange={field.onChange}
+                        placeholder="Selecione os serviços"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {form.watch("servicosRealizados")?.includes("Outro") && (
+                <FormField
+                  control={form.control}
+                  name="outroServico"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Especifique outro serviço</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Descreva o serviço" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+            </div>
+          </StepContent>
+        )}
+
+        {/* Step 3: Detalhes */}
+        {currentStep === 3 && (
+          <StepContent>
+            <div className="space-y-6">
+              <FormField
+                control={form.control}
+                name="resumoServicos"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Resumo do(s) Serviço(s) Realizado(s) *</FormLabel>
+                    <FormDescription>Descreva detalhadamente os serviços realizados</FormDescription>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Descreva os serviços realizados, problemas encontrados, soluções aplicadas..."
+                        className="min-h-[180px] resize-y"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="dataServico"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Data da Prestação do Serviço *</FormLabel>
+                    <DatePickerSimple date={field.value} setDate={field.onChange} />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </StepContent>
+        )}
+
+        {/* Step 4: Equipe */}
+        {currentStep === 4 && (
+          <StepContent>
+            <div className="space-y-6">
+              <FormField
+                control={form.control}
+                name="tecnicos"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Técnico(s) Especializado(s) da Rarotec *</FormLabel>
+                    <FormDescription>Selecione os técnicos que realizaram o serviço</FormDescription>
+                    <FormControl>
+                      <MultiSelectSimple
+                        options={tecnicosOptions.map((option) => ({
+                          label: option,
+                          value: option,
+                        }))}
+                        selected={field.value || []}
+                        onChange={field.onChange}
+                        placeholder="Selecione os técnicos"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-base">Técnico(s)/Gestor(es) do Cliente</Label>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Adicione os responsáveis do cliente que acompanharam o serviço (opcional)
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Input
+                    placeholder="Nome completo"
+                    value={clienteTemp.nome}
+                    onChange={(e) => setClienteTemp({ ...clienteTemp, nome: e.target.value })}
+                  />
+                  <Input 
+                    placeholder="000.000.000-00" 
+                    value={clienteTemp.cpf} 
+                    onChange={handleCPFChange} 
+                    maxLength={14} 
+                  />
+                  <Button type="button" onClick={adicionarCliente} variant="secondary">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Adicionar
+                  </Button>
+                </div>
+
+                {form.watch("clienteNomeCpf")?.length > 0 && (
+                  <Card className="border-border/50">
+                    <CardContent className="p-4">
+                      <h4 className="font-medium mb-3 text-sm text-muted-foreground">
+                        Técnicos/Gestores do cliente:
+                      </h4>
+                      <ul className="space-y-2">
+                        {form.watch("clienteNomeCpf")?.map((cliente, index) => (
+                          <li key={index} className="flex justify-between items-center p-3 rounded-lg bg-muted/50">
+                            <span className="text-sm">
+                              <span className="font-medium">{cliente.nome}</span>
+                              <span className="text-muted-foreground ml-2">CPF: {cliente.cpf}</span>
+                            </span>
+                            <Button type="button" variant="ghost" size="sm" onClick={() => removerCliente(index)}>
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             </div>
+          </StepContent>
+        )}
 
-            {/* Lista de clientes adicionados */}
-            {form.watch("clienteNomeCpf")?.length > 0 && (
-              <Card className="mt-4">
-                <CardContent className="p-4">
-                  <h3 className="font-medium mb-2">Técnicos/Gestores do Cliente adicionados:</h3>
-                  <ul className="space-y-2">
-                    {form.watch("clienteNomeCpf").map((cliente, index) => (
-                      <li key={index} className="flex justify-between items-center border-b pb-2">
-                        <span>
-                          {cliente.nome} - {cliente.cpf}
-                        </span>
-                        <Button type="button" variant="ghost" size="sm" onClick={() => removerCliente(index)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
+        {/* Step 5: Anexos e Email */}
+        {currentStep === 5 && (
+          <StepContent>
+            <div className="space-y-6">
+              <FormField
+                control={form.control}
+                name="emails"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2">
+                      <Mail className="h-4 w-4" />
+                      Email(s) para envio do relatório
+                    </FormLabel>
+                    <FormDescription>
+                      Informe os emails que receberão uma cópia do relatório em PDF (separados por vírgula)
+                    </FormDescription>
+                    <FormControl>
+                      <Input placeholder="exemplo@email.com, outro@email.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-base">Anexar Documento(s)</Label>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Adicione fotos, PDFs ou outros documentos relevantes. As imagens serão incorporadas no relatório final.
+                  </p>
+                </div>
+                <FileUploader onChange={handleFileChange} value={anexos} />
+              </div>
+            </div>
+          </StepContent>
+        )}
+
+        {/* Navigation */}
+        <div className="flex items-center justify-between pt-6 border-t border-border/50">
+          <div className="flex items-center gap-2">
+            {currentStep > 0 && (
+              <Button type="button" variant="outline" onClick={prevStep}>
+                <ChevronLeft className="h-4 w-4 mr-2" />
+                Anterior
+              </Button>
             )}
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button type="button" variant="ghost" className="text-muted-foreground">
+                  Limpar Dados
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Limpar formulário?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta ação irá limpar todos os dados preenchidos. Esta ação não pode ser desfeita.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={limparFormulario}>Limpar</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
-        </div>
-
-        <div className="space-y-4 bg-gray-50 p-4 rounded-lg border border-gray-200 mb-2">
-          <h3 className="text-lg font-medium text-gray-800">Anexos</h3>
 
           <div>
-            <Label>Anexar Documento(s)</Label>
-            <FileUploader onChange={handleFileChange} value={anexos} />
-          </div>
-        </div>
-
-        <div className="flex justify-between pt-4">
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button type="button" variant="outline">
-                Limpar Dados
+            {currentStep < steps.length - 1 ? (
+              <Button type="button" onClick={nextStep}>
+                Próximo
+                <ChevronRight className="h-4 w-4 ml-2" />
               </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Limpar formulário?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Esta ação irá limpar todos os dados preenchidos no formulário. Esta ação não pode ser desfeita.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={limparFormulario}>Limpar</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-
-          <Button type="submit" disabled={isGenerating} className="bg-blue-600 hover:bg-blue-700">
-            {isGenerating ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Gerando relatório...
-              </>
             ) : (
-              "Gerar Relatório"
+              <Button type="submit" disabled={isGenerating} className="min-w-[180px]">
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Gerando...
+                  </>
+                ) : (
+                  <>
+                    <FileCheck className="mr-2 h-4 w-4" />
+                    Gerar Relatório
+                  </>
+                )}
+              </Button>
             )}
-          </Button>
+          </div>
         </div>
       </form>
     </Form>
