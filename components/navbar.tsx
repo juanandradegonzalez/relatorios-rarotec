@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
@@ -11,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { FileText, History, Plus, LogOut, User, ChevronDown } from "lucide-react"
+import { History, Plus, LogOut, User, ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export function Navbar() {
@@ -30,17 +31,18 @@ export function Navbar() {
   ]
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b border-primary/10 bg-background/80 backdrop-blur-xl">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-              <FileText className="h-5 w-5 text-primary" />
-            </div>
-            <div className="hidden sm:block">
-              <span className="font-semibold text-foreground">Rarotec</span>
-              <span className="text-muted-foreground text-sm ml-1">Relatórios</span>
-            </div>
+            <Image 
+              src="/logo-rarotec.png" 
+              alt="Rarotec" 
+              width={120} 
+              height={40} 
+              className="h-10 w-auto object-contain"
+              priority
+            />
           </Link>
 
           <nav className="hidden md:flex items-center gap-1">

@@ -2,13 +2,14 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { AlertCircle, Loader2, FileText } from "lucide-react"
+import { AlertCircle, Loader2 } from "lucide-react"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -77,21 +78,30 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
+      {/* Background interativo */}
+      <div className="absolute inset-0 bg-grid-pattern opacity-30" />
+      <div className="absolute inset-0 bg-gradient-radial" />
+      <div className="absolute inset-0 bg-gradient-radial-bottom" />
+      
+      {/* Elementos decorativos flutuantes */}
+      <div className="absolute top-20 left-10 w-72 h-72 bg-primary/5 rounded-full blur-3xl animate-pulse-glow" />
+      <div className="absolute bottom-20 right-10 w-96 h-96 bg-accent/5 rounded-full blur-3xl animate-pulse-glow" style={{ animationDelay: '2s' }} />
+      
+      <div className="w-full max-w-md relative z-10">
         <div className="flex flex-col items-center mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
-              <FileText className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Rarotec</h1>
-              <p className="text-sm text-muted-foreground">Sistema de Relatórios</p>
-            </div>
-          </div>
+          <Image 
+            src="/logo-rarotec.png" 
+            alt="Rarotec" 
+            width={180} 
+            height={60} 
+            className="h-16 w-auto object-contain mb-4"
+            priority
+          />
+          <p className="text-sm text-muted-foreground">Sistema de Relatórios Técnicos</p>
         </div>
 
-        <Card className="border-border/50 shadow-xl">
+        <Card className="border-border/50 shadow-2xl shadow-primary/5 bg-card/80 backdrop-blur-sm card-glow">
           <CardHeader className="space-y-1 pb-4">
             <CardTitle className="text-xl text-center">Bem-vindo</CardTitle>
             <CardDescription className="text-center">

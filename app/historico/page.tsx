@@ -141,10 +141,19 @@ export default function HistoricoPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative">
+      {/* Background interativo */}
+      <div className="fixed inset-0 bg-grid-pattern opacity-20 pointer-events-none" />
+      <div className="fixed inset-0 bg-gradient-radial pointer-events-none" />
+      <div className="fixed inset-0 bg-gradient-radial-bottom pointer-events-none" />
+      
+      {/* Elementos decorativos */}
+      <div className="fixed top-40 -left-20 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-pulse-glow pointer-events-none" />
+      <div className="fixed bottom-40 -right-20 w-80 h-80 bg-accent/5 rounded-full blur-3xl animate-pulse-glow pointer-events-none" style={{ animationDelay: '2s' }} />
+      
       <Navbar />
 
-      <main className="container py-8 px-4">
+      <main className="container py-8 px-4 relative z-10">
         <div className="max-w-6xl mx-auto space-y-6">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -161,7 +170,7 @@ export default function HistoricoPage() {
           </div>
 
           {/* Filtros */}
-          <Card className="border-border/50">
+          <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
             <CardHeader className="pb-4">
               <CardTitle className="text-base flex items-center gap-2">
                 <Filter className="h-4 w-4" />

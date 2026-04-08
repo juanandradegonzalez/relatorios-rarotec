@@ -34,10 +34,19 @@ export default function Page() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative">
+      {/* Background interativo */}
+      <div className="fixed inset-0 bg-grid-pattern opacity-20 pointer-events-none" />
+      <div className="fixed inset-0 bg-gradient-radial pointer-events-none" />
+      <div className="fixed inset-0 bg-gradient-radial-bottom pointer-events-none" />
+      
+      {/* Elementos decorativos */}
+      <div className="fixed top-40 -left-20 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-pulse-glow pointer-events-none" />
+      <div className="fixed bottom-40 -right-20 w-80 h-80 bg-accent/5 rounded-full blur-3xl animate-pulse-glow pointer-events-none" style={{ animationDelay: '2s' }} />
+      
       <Navbar />
       
-      <main className="container py-8 px-4">
+      <main className="container py-8 px-4 relative z-10">
         <div className="max-w-5xl mx-auto">
           {!selectedForm ? (
             <>
@@ -53,7 +62,7 @@ export default function Page() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Card 
-                  className="group cursor-pointer transition-all duration-300 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5"
+                  className="group cursor-pointer card-glow bg-card/80 backdrop-blur-sm"
                   onClick={() => setSelectedForm("servicos")}
                 >
                   <CardHeader className="text-center pb-2">
@@ -91,7 +100,7 @@ export default function Page() {
                 </Card>
 
                 <Card 
-                  className="group cursor-pointer transition-all duration-300 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5"
+                  className="group cursor-pointer card-glow bg-card/80 backdrop-blur-sm"
                   onClick={() => setSelectedForm("migracao")}
                 >
                   <CardHeader className="text-center pb-2">
@@ -146,7 +155,7 @@ export default function Page() {
                 </div>
               </div>
 
-              <Card className="border-border/50">
+              <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
                 <CardContent className="p-6">
                   {selectedForm === "servicos" ? <FormServicos /> : <FormMigracao />}
                 </CardContent>
