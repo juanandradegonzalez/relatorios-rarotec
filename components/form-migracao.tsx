@@ -669,10 +669,11 @@ export function FormMigracao() {
     <Form {...form}>
       <form ref={formRef} onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         {/* Stepper */}
-        <Stepper steps={steps} currentStep={currentStep} onStepClick={setCurrentStep} />
+        <Stepper steps={steps} currentStep={currentStep} />
 
-        {/* Step 1 - Localização */}
-        <StepContent step={0} currentStep={currentStep}>
+        {/* Step 0 - Localização */}
+        {currentStep === 0 && (
+        <StepContent>
           <Card className="border-gray-200 bg-white shadow-lg">
             <CardContent className="pt-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -756,10 +757,12 @@ export function FormMigracao() {
               </div>
             </CardContent>
           </Card>
-        </StepContent>
-
-        {/* Step 2 - Entidades */}
-        <StepContent step={1} currentStep={currentStep}>
+</StepContent>
+        )}
+        
+        {/* Step 1 - Entidades */}
+        {currentStep === 1 && (
+        <StepContent>
           <Card className="border-gray-200 bg-white shadow-lg">
             <CardContent className="pt-6 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -824,10 +827,12 @@ export function FormMigracao() {
               />
             </CardContent>
           </Card>
-        </StepContent>
-
-        {/* Step 3 - Módulos */}
-        <StepContent step={2} currentStep={currentStep}>
+</StepContent>
+        )}
+        
+        {/* Step 2 - Módulos */}
+        {currentStep === 2 && (
+        <StepContent>
           <Card className="border-gray-200 bg-white shadow-lg">
             <CardContent className="pt-6 space-y-4">
               <FormField
@@ -869,10 +874,12 @@ export function FormMigracao() {
               )}
             </CardContent>
           </Card>
-        </StepContent>
-
-        {/* Step 4 - Etapas */}
-        <StepContent step={3} currentStep={currentStep}>
+</StepContent>
+        )}
+        
+        {/* Step 3 - Etapas */}
+        {currentStep === 3 && (
+        <StepContent>
           <Card className="border-gray-200 bg-white shadow-lg">
             <CardContent className="pt-6 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -963,10 +970,12 @@ export function FormMigracao() {
               )}
             </CardContent>
           </Card>
-        </StepContent>
-
-        {/* Step 5 - Situações Críticas e Soluções */}
-        <StepContent step={4} currentStep={currentStep}>
+</StepContent>
+        )}
+        
+        {/* Step 4 - Situações Críticas e Soluções */}
+        {currentStep === 4 && (
+        <StepContent>
           <Card className="border-gray-200 bg-white shadow-lg">
             <CardContent className="pt-6 space-y-6">
               {/* Situações Críticas */}
@@ -1081,10 +1090,12 @@ export function FormMigracao() {
               />
             </CardContent>
           </Card>
-        </StepContent>
-
-        {/* Step 6 - Equipe */}
-        <StepContent step={5} currentStep={currentStep}>
+</StepContent>
+        )}
+        
+        {/* Step 5 - Equipe */}
+        {currentStep === 5 && (
+        <StepContent>
           <Card className="border-gray-200 bg-white shadow-lg">
             <CardContent className="pt-6 space-y-6">
               <FormField
@@ -1189,10 +1200,12 @@ export function FormMigracao() {
               </div>
             </CardContent>
           </Card>
-        </StepContent>
-
-        {/* Step 7 - Anexos e Email */}
-        <StepContent step={6} currentStep={currentStep}>
+</StepContent>
+        )}
+        
+        {/* Step 6 - Anexos e Email */}
+        {currentStep === 6 && (
+        <StepContent>
           <Card className="border-gray-200 bg-white shadow-lg">
             <CardContent className="pt-6 space-y-6">
               <FormField
@@ -1244,8 +1257,9 @@ export function FormMigracao() {
               </div>
             </CardContent>
           </Card>
-        </StepContent>
-
+</StepContent>
+        )}
+        
         {/* Navegação */}
         <div className="flex items-center justify-between pt-4 border-t">
           <div className="flex items-center gap-2">
