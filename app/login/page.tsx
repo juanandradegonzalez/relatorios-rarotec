@@ -54,10 +54,10 @@ export default function LoginPage() {
           <Logo size="lg" showTagline />
         </div>
 
-        <Card className="border-border shadow-xl bg-white/90 backdrop-blur-sm">
+        <Card className="border-gray-200 shadow-xl bg-white/95 backdrop-blur-sm">
           <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-xl text-center text-foreground">Entrar no Sistema</CardTitle>
-            <CardDescription className="text-center">
+            <CardTitle className="text-xl text-center text-gray-900">Entrar no Sistema</CardTitle>
+            <CardDescription className="text-center text-gray-600">
               Use suas credenciais para acessar
             </CardDescription>
           </CardHeader>
@@ -71,7 +71,7 @@ export default function LoginPage() {
 
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-foreground">Email</Label>
+                <Label htmlFor="email" className="text-gray-800 font-medium">Email</Label>
                 <Input
                   id="email"
                   type="email"
@@ -80,11 +80,11 @@ export default function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   disabled={isLoading}
-                  className="bg-white border-gray-200"
+                  className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-foreground">Senha</Label>
+                <Label htmlFor="password" className="text-gray-800 font-medium">Senha</Label>
                 <Input
                   id="password"
                   type="password"
@@ -93,7 +93,7 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   disabled={isLoading}
-                  className="bg-white border-gray-200"
+                  className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
                 />
               </div>
               <Button type="submit" className="w-full" disabled={isLoading}>
@@ -110,7 +110,7 @@ export default function LoginPage() {
           </CardContent>
         </Card>
 
-        <p className="text-center text-sm text-muted-foreground mt-6">
+        <p className="text-center text-sm text-gray-500 mt-6">
           Sistema de Relatórios Técnicos
         </p>
       </div>
