@@ -663,7 +663,7 @@ export function FormMigracao() {
         "Felipe Falleiros",
         "Juan Gonzalez",
         "Eugênio Albuquerque",
-      ]
+      ];
 
   return (
     <Form {...form}>
