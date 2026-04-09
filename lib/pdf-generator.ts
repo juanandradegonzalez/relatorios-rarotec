@@ -5,6 +5,8 @@ import { ptBR } from "date-fns/locale"
 interface PDFGeneratorResult {
   success: boolean
   message?: string
+  pdfBase64?: string
+  pdfBlob?: Blob
 }
 
 interface PDFGeneratorOptions {
@@ -816,20 +818,15 @@ export async function generatePDF({ tipoRelatorio, dados, anexos }: PDFGenerator
       addFooter(doc, i, totalPages)
     }
 
-    // Salvar o PDF principal
-    doc.save(`relatorio-${tipoRelatorio}-${format(new Date(), "dd-MM-yyyy")}.pdf`)
-
-    // Se houver anexos, gerar o PDF de anexos separadamente
-    if (anexos.length > 0) {
-      await generateAttachmentsPDF(anexos, tipoRelatorio)
-    }
+    // Gerar o PDF como base64 e Blob (não salvar automaticamente)
+    const pdfBase64 = doc.output('datauristring').split(',')[1]
+    const pdfBlob = doc.output('blob')
 
     return {
       success: true,
-      message:
-        anexos.length > 0
-          ? "Foram gerados dois PDFs: o relatório principal e outro com os anexos."
-          : "O relatório foi gerado com sucesso.",
+      message: "O relatório foi gerado com sucesso.",
+      pdfBase64,
+      pdfBlob,
     }
   } catch (error) {
     console.error("Erro ao gerar PDF:", error)

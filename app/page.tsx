@@ -1,78 +1,65 @@
 "use client"
+
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { useAuth } from "@/components/auth-provider"
 import { FormServicos } from "@/components/form-servicos"
-import { FormMigracao } from "@/components/form-migracao"
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { FileText, ArrowRight } from "lucide-react"
+import { Navbar } from "@/components/navbar"
+import { AnimatedBackground } from "@/components/animated-background"
+import { Card, CardContent } from "@/components/ui/card"
+import { Loader2 } from "lucide-react"
 
 export default function Page() {
-  const [selectedForm, setSelectedForm] = useState<"servicos" | "migracao" | null>(null)
+  const router = useRouter()
+  const { user, isLoading } = useAuth()
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push("/login")
+    }
+  }, [user, isLoading, router])
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (!user) {
+    return null
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto py-10 px-4">
+    <div className="min-h-screen relative">
+      <AnimatedBackground />
+      <Navbar />
+      
+      <main className="container py-8 px-4 relative z-10">
         <div className="max-w-5xl mx-auto">
-          <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">Gerador de Relatórios Técnicos</h1>
-          <p className="text-center text-gray-600 mb-8">Selecione o tipo de relatório que deseja gerar para começar.</p>
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-3 text-balance">
+              Gerador de Relatórios Técnicos
+            </h1>
+            <p className="text-gray-600 max-w-xl mx-auto">
+              Preencha as informações e o sistema criará um PDF profissional automaticamente.
+            </p>
+          </div>
 
-          {!selectedForm ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-              <div
-                className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:border-blue-500 hover:shadow-lg transition-all cursor-pointer"
-                onClick={() => setSelectedForm("servicos")}
-              >
-                <div className="flex items-center justify-center mb-4">
-                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-                    <FileText className="h-8 w-8 text-blue-600" />
-                  </div>
-                </div>
-                <h2 className="text-xl font-semibold text-center mb-2">Relatório de Serviços</h2>
-                <p className="text-gray-600 text-center mb-4">
-                  Gere relatórios detalhados para serviços técnicos realizados.
-                </p>
-                <div className="flex justify-center">
-                  <Button className="w-full">
-                    Selecionar <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-
-              <div
-                className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:border-blue-500 hover:shadow-lg transition-all cursor-pointer"
-                onClick={() => setSelectedForm("migracao")}
-              >
-                <div className="flex items-center justify-center mb-4">
-                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-                    <FileText className="h-8 w-8 text-blue-600" />
-                  </div>
-                </div>
-                <h2 className="text-xl font-semibold text-center mb-2">Relatório de Migração</h2>
-                <p className="text-gray-600 text-center mb-4">
-                  Gere relatórios detalhados para processos de migração de dados.
-                </p>
-                <div className="flex justify-center">
-                  <Button className="w-full">
-                    Selecionar <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-200">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-semibold">
-                  {selectedForm === "servicos" ? "Formulário de Serviços" : "Formulário de Migração"}
-                </h2>
-                <Button variant="outline" onClick={() => setSelectedForm(null)}>
-                  Voltar
-                </Button>
-              </div>
-
-              {selectedForm === "servicos" ? <FormServicos /> : <FormMigracao />}
-            </div>
-          )}
+          <Card className="border-gray-200 bg-white shadow-lg">
+            <CardContent className="p-6">
+              <FormServicos />
+            </CardContent>
+          </Card>
         </div>
-      </div>
+      </main>
+
+      <footer className="border-t border-gray-200 py-6 mt-10">
+        <div className="container text-center text-sm text-gray-500">
+          &copy; {new Date().getFullYear()} Rarotec Tecnologia. Todos os direitos reservados.
+        </div>
+      </footer>
     </div>
   )
 }
