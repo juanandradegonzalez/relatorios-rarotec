@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
     query += ` ORDER BY created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`
     params.push(limit, offset)
 
-    const relatorios = await sql(query, params)
+    const relatorios = await sql.query(query, params)
 
     // Contar total
     let countQuery = `SELECT COUNT(*) as total FROM relatorios WHERE user_id = $1`
@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
       countParamIndex++
     }
 
-    const countResult = await sql(countQuery, countParams)
+    const countResult = await sql.query(countQuery, countParams)
     const total = parseInt(countResult[0]?.total || '0')
 
     return NextResponse.json({

@@ -37,13 +37,14 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form"
 import { Card, CardContent } from "@/components/ui/card"
-import { Loader2, Plus, Trash2, Search, Flag, ChevronLeft, ChevronRight, FileCheck, Mail, Download, Send, Eye, X } from "lucide-react"
+import { Loader2, Plus, Trash2, Search, Flag, ChevronLeft, ChevronRight, FileCheck, Mail, Download, Send } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { estados, estadosBandeiras, getMunicipiosPorEstado } from "@/lib/estados-municipios"
 import { cn } from "@/lib/utils"
 
 const formSchema = z.object({
   emails: z.string().optional(),
+  emailCliente: z.string().email("Email inválido").optional().or(z.literal("")),
   estado: z.string().min(1, "Selecione o estado"),
   municipio: z.string().min(1, "Selecione o município"),
   entidadesOrgaos: z
@@ -352,17 +353,28 @@ export function FormServicos() {
     }
   }
 
-  const handleSendEmail = async () => {
+const handleSendEmail = async () => {
     const emails = form.getValues("emails")
-    if (!emails || emails.trim() === "") {
+    const emailCliente = form.getValues("emailCliente")
+    
+    // Combinar emails internos + email do cliente
+    const allEmails: string[] = []
+    if (emails && emails.trim()) {
+      allEmails.push(...emails.split(",").map(e => e.trim()).filter(e => e))
+    }
+    if (emailCliente && emailCliente.trim()) {
+      allEmails.push(emailCliente.trim())
+    }
+    
+    if (allEmails.length === 0) {
       toast({
         title: "Email não informado",
-        description: "Informe pelo menos um email para enviar o relatório.",
+        description: "Informe pelo menos um email (cliente ou interno) para enviar o relatório.",
         variant: "destructive",
       })
       return
     }
-
+    
     if (!pdfData) {
       toast({
         title: "PDF não disponível",
@@ -371,21 +383,21 @@ export function FormServicos() {
       })
       return
     }
-
+    
     setIsSendingEmail(true)
     try {
-      const emailList = emails.split(",").map(e => e.trim()).filter(e => e)
       const data = form.getValues()
       
       const response = await fetch("/api/send-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          emails: emailList,
+          emails: allEmails,
           pdfBase64: pdfData.base64,
           tipoRelatorio: "servicos",
           municipio: data.municipio,
           dataServico: data.dataServico ? format(new Date(data.dataServico), "dd/MM/yyyy") : null,
+          cliente: data.entidadesOrgaos?.[0]?.nome || "Cliente",
         }),
       })
 
@@ -602,7 +614,7 @@ export function FormServicos() {
                     <h4 className="font-medium mb-3 text-sm text-muted-foreground">Entidades adicionadas:</h4>
                     <ul className="space-y-2">
                       {form.watch("entidadesOrgaos")?.map((item, index) => (
-                        <li key={index} className="flex justify-between items-center p-3 rounded-lg bg-muted/50">
+                        <li key={index} className="flex justify-between items-center p-3 rounded-lg bg-blue-50 border border-blue-100">
                           <span className="text-sm">
                             <span className="font-medium">{item.entidade}</span>
                             <span className="text-muted-foreground ml-2">CNPJ: {item.cnpj}</span>
@@ -839,7 +851,7 @@ export function FormServicos() {
                       </h4>
                       <ul className="space-y-2">
                         {form.watch("clienteNomeCpf")?.map((cliente, index) => (
-                          <li key={index} className="flex justify-between items-center p-3 rounded-lg bg-muted/50">
+                          <li key={index} className="flex justify-between items-center p-3 rounded-lg bg-blue-50 border border-blue-100">
                             <span className="text-sm">
                               <span className="font-medium">{cliente.nome}</span>
                               <span className="text-muted-foreground ml-2">CPF: {cliente.cpf}</span>
@@ -864,18 +876,38 @@ export function FormServicos() {
             <div className="space-y-6">
               <FormField
                 control={form.control}
+                name="emailCliente"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2">
+                      <Mail className="h-4 w-4" />
+                      Email do Cliente
+                    </FormLabel>
+                    <FormDescription>
+                      O cliente receberá uma cópia do relatório em PDF neste email
+                    </FormDescription>
+                    <FormControl>
+                      <Input placeholder="cliente@empresa.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name="emails"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center gap-2">
                       <Mail className="h-4 w-4" />
-                      Email(s) para envio do relatório
+                      Email(s) internos da Rarotec
                     </FormLabel>
                     <FormDescription>
-                      Informe os emails que receberão uma cópia do relatório em PDF (separados por vírgula)
+                      Emails internos que também receberão o relatório (separados por vírgula)
                     </FormDescription>
                     <FormControl>
-                      <Input placeholder="exemplo@email.com, outro@email.com" {...field} />
+                      <Input placeholder="exemplo@rarotec.com.br, outro@rarotec.com.br" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -950,64 +982,49 @@ export function FormServicos() {
         </div>
       </form>
 
-      {/* Modal de Preview do PDF */}
+      {/* Modal de Sucesso - Baixar PDF ou Enviar Email */}
       <Dialog open={showPreview} onOpenChange={setShowPreview}>
-        <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Eye className="h-5 w-5" />
-              Preview do Relatório
+            <DialogTitle className="flex items-center gap-2 text-gray-900">
+              <FileCheck className="h-5 w-5 text-green-600" />
+              Relatório Gerado com Sucesso!
             </DialogTitle>
-            <DialogDescription>
-              Revise o relatório antes de baixar ou enviar por email.
+            <DialogDescription className="text-gray-600">
+              O que você deseja fazer agora?
             </DialogDescription>
           </DialogHeader>
           
-          <div className="flex-1 min-h-0 bg-muted rounded-lg overflow-hidden">
-            {pdfPreviewUrl && (
-              <iframe
-                src={pdfPreviewUrl}
-                className="w-full h-full border-0"
-                title="Preview do PDF"
-              />
-            )}
+          <div className="space-y-3 py-4">
+            <Button onClick={handleDownloadPDF} className="w-full justify-start" variant="outline">
+              <Download className="h-4 w-4 mr-3" />
+              Baixar PDF no computador
+            </Button>
+            
+            <Button 
+              onClick={handleSendEmail} 
+              disabled={isSendingEmail || (!form.getValues("emails") && !form.getValues("emailCliente"))}
+              className="w-full justify-start"
+              variant="outline"
+            >
+              {isSendingEmail ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-3 animate-spin" />
+                  Enviando email...
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4 mr-3" />
+                  Enviar por email
+                </>
+              )}
+            </Button>
           </div>
 
-          <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
-            <div className="flex gap-2 w-full sm:w-auto">
-              <Button variant="outline" onClick={handleClosePreview} className="flex-1 sm:flex-none">
-                <X className="h-4 w-4 mr-2" />
-                Fechar
-              </Button>
-              <Button variant="outline" onClick={handleDownloadPDF} className="flex-1 sm:flex-none">
-                <Download className="h-4 w-4 mr-2" />
-                Baixar PDF
-              </Button>
-            </div>
-            <div className="flex gap-2 w-full sm:w-auto">
-              <Button 
-                onClick={handleSendEmail} 
-                disabled={isSendingEmail || !form.getValues("emails")}
-                variant="secondary"
-                className="flex-1 sm:flex-none"
-              >
-                {isSendingEmail ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Enviando...
-                  </>
-                ) : (
-                  <>
-                    <Send className="h-4 w-4 mr-2" />
-                    Enviar por Email
-                  </>
-                )}
-              </Button>
-              <Button onClick={handleConfirmAndClose} className="flex-1 sm:flex-none">
-                <FileCheck className="h-4 w-4 mr-2" />
-                Concluir
-              </Button>
-            </div>
+          <DialogFooter>
+            <Button onClick={handleConfirmAndClose} className="w-full">
+              Concluir e Criar Novo Relatório
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

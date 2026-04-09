@@ -3,9 +3,13 @@ import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
+// Usar domínio verificado no Resend ou fallback para email de teste
+// Para produção, verifique seu domínio em resend.com > Domains
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Rarotec Relatórios <onboarding@resend.dev>'
+
 export async function POST(req: NextRequest) {
   try {
-    const { emails, pdfBase64, tipoRelatorio, clienteNome, municipio, dataServico } = await req.json()
+    const { emails, pdfBase64, tipoRelatorio, cliente, municipio, dataServico } = await req.json()
 
     if (!emails || emails.length === 0) {
       return NextResponse.json(
@@ -27,7 +31,7 @@ export async function POST(req: NextRequest) {
     // Enviar email para cada destinatário
     const emailPromises = emails.map(async (email: string) => {
       return resend.emails.send({
-        from: 'Rarotec Relatórios <relatorios@rarotec.com.br>',
+        from: FROM_EMAIL,
         to: email.trim(),
         subject: `Relatório Técnico - ${tipoRelatorio === 'servicos' ? 'Serviços' : 'Migração'} - ${municipio || 'N/A'}`,
         html: `

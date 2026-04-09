@@ -151,8 +151,8 @@ export default function HistoricoPage() {
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Histórico de Relatórios</h1>
-              <p className="text-muted-foreground">
+              <h1 className="text-2xl font-bold text-gray-900">Histórico de Relatórios</h1>
+              <p className="text-gray-600">
                 {data?.total || 0} relatório(s) encontrado(s)
               </p>
             </div>
@@ -163,9 +163,9 @@ export default function HistoricoPage() {
           </div>
 
           {/* Filtros */}
-          <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+          <Card className="border-gray-200 bg-white shadow-lg">
             <CardHeader className="pb-4">
-              <CardTitle className="text-base flex items-center gap-2">
+              <CardTitle className="text-base flex items-center gap-2 text-gray-900">
                 <Filter className="h-4 w-4" />
                 Filtros
               </CardTitle>
@@ -173,7 +173,7 @@ export default function HistoricoPage() {
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm text-muted-foreground">Tipo</label>
+                  <label className="text-sm text-gray-700 font-medium">Tipo</label>
                   <Select value={tipo} onValueChange={setTipo}>
                     <SelectTrigger>
                       <SelectValue placeholder="Todos os tipos" />
@@ -187,9 +187,9 @@ export default function HistoricoPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm text-muted-foreground">Cliente</label>
+                  <label className="text-sm text-gray-700 font-medium">Cliente</label>
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <Input
                       placeholder="Buscar cliente..."
                       value={cliente}
@@ -200,7 +200,7 @@ export default function HistoricoPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm text-muted-foreground">Estado</label>
+                  <label className="text-sm text-gray-700 font-medium">Estado</label>
                   <Select value={estado} onValueChange={setEstado}>
                     <SelectTrigger>
                       <SelectValue placeholder="Todos os estados" />
@@ -241,7 +241,7 @@ export default function HistoricoPage() {
                 <div className="flex items-end">
                   <Button 
                     variant="ghost" 
-                    className="w-full"
+                    className="w-full text-primary hover:text-primary/80"
                     onClick={() => {
                       setTipo("")
                       setCliente("")
@@ -256,7 +256,7 @@ export default function HistoricoPage() {
           </Card>
 
           {/* Tabela de Relatórios */}
-          <Card className="border-border/50">
+          <Card className="border-gray-200 bg-white shadow-lg">
             <CardContent className="p-0">
               {isLoading ? (
                 <div className="flex items-center justify-center py-12">
@@ -264,17 +264,17 @@ export default function HistoricoPage() {
                 </div>
               ) : error ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <FileText className="h-12 w-12 text-muted-foreground/50 mb-4" />
-                  <p className="text-muted-foreground">Erro ao carregar relatórios</p>
+                  <FileText className="h-12 w-12 text-gray-300 mb-4" />
+                  <p className="text-gray-600">Erro ao carregar relatórios</p>
                   <Button variant="outline" size="sm" className="mt-4" onClick={() => mutate()}>
                     Tentar novamente
                   </Button>
                 </div>
               ) : data?.relatorios.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <FileText className="h-12 w-12 text-muted-foreground/50 mb-4" />
-                  <p className="text-muted-foreground">Nenhum relatório encontrado</p>
-                  <p className="text-sm text-muted-foreground/70">
+                  <FileText className="h-12 w-12 text-gray-300 mb-4" />
+                  <p className="text-gray-600">Nenhum relatório encontrado</p>
+                  <p className="text-sm text-gray-400">
                     Gere seu primeiro relatório para vê-lo aqui
                   </p>
                   <Button 
@@ -310,7 +310,7 @@ export default function HistoricoPage() {
                               <div className="font-medium">{relatorio.cliente}</div>
                             </TableCell>
                             <TableCell className="hidden md:table-cell">
-                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                              <div className="flex items-center gap-1 text-sm text-gray-600">
                                 <MapPin className="h-3 w-3" />
                                 {relatorio.municipio && relatorio.estado
                                   ? `${relatorio.municipio}, ${relatorio.estado}`
@@ -318,7 +318,7 @@ export default function HistoricoPage() {
                               </div>
                             </TableCell>
                             <TableCell className="hidden lg:table-cell">
-                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                              <div className="flex items-center gap-1 text-sm text-gray-600">
                                 <Users className="h-3 w-3" />
                                 <span className="max-w-[200px] truncate">
                                   {relatorio.tecnicos?.length > 0
@@ -330,7 +330,7 @@ export default function HistoricoPage() {
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-1 text-sm">
-                                <Calendar className="h-3 w-3 text-muted-foreground" />
+                                <Calendar className="h-3 w-3 text-gray-500" />
                                 {format(new Date(relatorio.data_atendimento), "dd/MM/yyyy", {
                                   locale: ptBR,
                                 })}
@@ -349,8 +349,8 @@ export default function HistoricoPage() {
 
                   {/* Paginação */}
                   {totalPages > 1 && (
-                    <div className="flex items-center justify-between px-4 py-4 border-t border-border/50">
-                      <p className="text-sm text-muted-foreground">
+                    <div className="flex items-center justify-between px-4 py-4 border-t border-gray-200">
+                      <p className="text-sm text-gray-600">
                         Mostrando {page * limit + 1} a {Math.min((page + 1) * limit, data?.total || 0)} de {data?.total || 0}
                       </p>
                       <div className="flex items-center gap-2">
@@ -362,7 +362,7 @@ export default function HistoricoPage() {
                         >
                           <ChevronLeft className="h-4 w-4" />
                         </Button>
-                        <span className="text-sm text-muted-foreground">
+                        <span className="text-sm text-gray-600">
                           Página {page + 1} de {totalPages}
                         </span>
                         <Button
@@ -383,8 +383,8 @@ export default function HistoricoPage() {
         </div>
       </main>
 
-      <footer className="border-t border-border/40 py-6 mt-10">
-        <div className="container text-center text-sm text-muted-foreground">
+      <footer className="border-t border-gray-200 py-6 mt-10">
+        <div className="container text-center text-sm text-gray-500">
           &copy; {new Date().getFullYear()} Rarotec Tecnologia. Todos os direitos reservados.
         </div>
       </footer>
