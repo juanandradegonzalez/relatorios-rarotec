@@ -29,7 +29,9 @@ import { useForm } from "react-hook-form"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Card, CardContent } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Loader2, Plus, Trash2, Search, Flag } from "lucide-react"
+import { Loader2, Plus, Trash2, Search, Flag, FileCheck, Download, Send, Mail } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { format } from "date-fns"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { estados, estadosBandeiras, getMunicipiosPorEstado } from "@/lib/estados-municipios"
 
@@ -82,6 +84,9 @@ export function FormMigracao() {
   const { toast } = useToast()
   const [isGenerating, setIsGenerating] = useState(false)
   const [anexos, setAnexos] = useState<File[]>([])
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [pdfData, setPdfData] = useState<{ base64: string; blob: Blob } | null>(null)
+  const [isSendingEmail, setIsSendingEmail] = useState(false)
   const [clienteTemp, setClienteTemp] = useState({ nome: "", cpf: "" })
   const [etapaTemp, setEtapaTemp] = useState<{
     nome: string
@@ -369,7 +374,6 @@ export function FormMigracao() {
     try {
       setIsGenerating(true)
 
-      // Adicionar um log para debug
       console.log("Gerando relatório de migração com dados:", data)
 
       const result = await generatePDF({
@@ -378,11 +382,37 @@ export function FormMigracao() {
         anexos,
       })
 
-      if (result.success) {
-        toast({
-          title: "Relatório gerado com sucesso",
-          description: result.message || "O relatório foi gerado e está pronto para download",
-        })
+      if (result.success && result.pdfBlob && result.pdfBase64) {
+        setPdfData({ base64: result.pdfBase64, blob: result.pdfBlob })
+        
+        // Salvar relatório no banco de dados
+        try {
+          const clienteNome = data.entidadesOrgaos?.[0]?.entidade || "Cliente"
+          const tecnicosNomes = data.tecnicos || []
+          const dataAtendimento = data.dataServico 
+            ? (data.dataServico instanceof Date 
+                ? data.dataServico.toISOString().split('T')[0] 
+                : data.dataServico)
+            : new Date().toISOString().split('T')[0]
+          
+          await fetch("/api/relatorios", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              tipo: "migracao",
+              cliente: clienteNome,
+              municipio: data.municipio,
+              estado: data.estado,
+              dataAtendimento: dataAtendimento,
+              tecnicos: tecnicosNomes,
+              dados: data,
+            }),
+          })
+        } catch (saveError) {
+          console.error("Erro ao salvar relatório no histórico:", saveError)
+        }
+        
+        setShowSuccessModal(true)
       } else {
         throw new Error(result.message || "Erro ao gerar o relatório")
       }
@@ -396,6 +426,94 @@ export function FormMigracao() {
     } finally {
       setIsGenerating(false)
     }
+  }
+
+  const handleDownloadPDF = () => {
+    if (pdfData) {
+      const link = document.createElement('a')
+      link.href = URL.createObjectURL(pdfData.blob)
+      link.download = `relatorio-migracao-${format(new Date(), "dd-MM-yyyy")}.pdf`
+      link.click()
+      toast({
+        title: "Download iniciado",
+        description: "O relatório está sendo baixado.",
+      })
+    }
+  }
+
+  const handleSendEmail = async () => {
+    const emails = form.getValues("emails")
+    
+    const allEmails: string[] = []
+    if (emails && emails.trim()) {
+      allEmails.push(...emails.split(",").map(e => e.trim()).filter(e => e))
+    }
+    
+    if (allEmails.length === 0) {
+      toast({
+        title: "Email não informado",
+        description: "Informe pelo menos um email para enviar o relatório.",
+        variant: "destructive",
+      })
+      return
+    }
+    
+    if (!pdfData) {
+      toast({
+        title: "PDF não disponível",
+        description: "Gere o relatório antes de enviar por email.",
+        variant: "destructive",
+      })
+      return
+    }
+    
+    setIsSendingEmail(true)
+    try {
+      const data = form.getValues()
+      
+      const response = await fetch("/api/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          emails: allEmails,
+          pdfBase64: pdfData.base64,
+          tipoRelatorio: "migracao",
+          municipio: data.municipio,
+          dataServico: data.dataServico ? format(new Date(data.dataServico), "dd/MM/yyyy") : null,
+          cliente: data.entidadesOrgaos?.[0]?.entidade || "Cliente",
+        }),
+      })
+
+      const result = await response.json()
+      
+      if (response.ok) {
+        toast({
+          title: "Email enviado com sucesso!",
+          description: `Relatório enviado para ${allEmails.join(", ")}`,
+        })
+      } else {
+        throw new Error(result.error || "Erro ao enviar email")
+      }
+    } catch (error) {
+      console.error("Erro ao enviar email:", error)
+      toast({
+        title: "Erro ao enviar email",
+        description: "Não foi possível enviar o email. Tente novamente.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSendingEmail(false)
+    }
+  }
+
+  const handleConfirmAndClose = () => {
+    setShowSuccessModal(false)
+    setPdfData(null)
+    limparFormulario()
+    toast({
+      title: "Relatório concluído",
+      description: "Você pode criar um novo relatório.",
+    })
   }
 
   const limparFormulario = () => {
@@ -1002,6 +1120,53 @@ export function FormMigracao() {
           </Button>
         </div>
       </form>
+
+      {/* Modal de Sucesso */}
+      <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-gray-900">
+              <FileCheck className="h-5 w-5 text-green-600" />
+              Relatório Gerado com Sucesso!
+            </DialogTitle>
+            <DialogDescription className="text-gray-600">
+              O que você deseja fazer agora?
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-3 py-4">
+            <Button onClick={handleDownloadPDF} className="w-full justify-start" variant="outline">
+              <Download className="h-4 w-4 mr-3" />
+              Baixar PDF no computador
+            </Button>
+            
+            <Button 
+              onClick={handleSendEmail} 
+              disabled={isSendingEmail}
+              className="w-full justify-start"
+              variant="outline"
+            >
+              {isSendingEmail ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-3 animate-spin" />
+                  Enviando email...
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4 mr-3" />
+                  Enviar por email
+                </>
+              )}
+            </Button>
+          </div>
+
+          <DialogFooter>
+            <Button onClick={handleConfirmAndClose} className="w-full">
+              Concluir e Criar Novo Relatório
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Form>
   )
 }

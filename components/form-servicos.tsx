@@ -329,8 +329,13 @@ export function FormServicos() {
         try {
           const clienteNome = data.entidadesOrgaos?.[0]?.nome || "Cliente"
           const tecnicosNomes = data.tecnicosResponsaveis?.map(t => t.nome) || []
+          const dataAtendimento = data.dataServico 
+            ? (data.dataServico instanceof Date 
+                ? data.dataServico.toISOString().split('T')[0] 
+                : data.dataServico)
+            : new Date().toISOString().split('T')[0]
           
-          console.log("[v0] Salvando relatório no banco:", { clienteNome, municipio: data.municipio, estado: data.estado })
+          console.log("[v0] Salvando relatório no banco:", { clienteNome, municipio: data.municipio, estado: data.estado, dataAtendimento })
           
           const saveResponse = await fetch("/api/relatorios", {
             method: "POST",
@@ -340,7 +345,7 @@ export function FormServicos() {
               cliente: clienteNome,
               municipio: data.municipio,
               estado: data.estado,
-              dataAtendimento: data.dataServico,
+              dataAtendimento: dataAtendimento,
               tecnicos: tecnicosNomes,
               dados: data,
             }),
@@ -348,6 +353,10 @@ export function FormServicos() {
           
           const saveResult = await saveResponse.json()
           console.log("[v0] Resultado do salvamento:", saveResult)
+          
+          if (!saveResponse.ok) {
+            console.error("[v0] Erro na resposta da API:", saveResult)
+          }
         } catch (saveError) {
           console.error("[v0] Erro ao salvar relatório no histórico:", saveError)
           // Continua mesmo se falhar ao salvar, pois o PDF já foi gerado
