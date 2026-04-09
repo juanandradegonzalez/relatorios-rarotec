@@ -324,6 +324,30 @@ export function FormServicos() {
         const previewUrl = URL.createObjectURL(result.pdfBlob)
         setPdfPreviewUrl(previewUrl)
         setPdfData({ base64: result.pdfBase64, blob: result.pdfBlob })
+        
+        // Salvar relatório no banco de dados
+        try {
+          const clienteNome = data.entidadesOrgaos?.[0]?.nome || "Cliente"
+          const tecnicosNomes = data.tecnicosResponsaveis?.map(t => t.nome) || []
+          
+          await fetch("/api/relatorios", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              tipo: "servicos",
+              cliente: clienteNome,
+              municipio: data.municipio,
+              estado: data.estado,
+              dataAtendimento: data.dataServico,
+              tecnicos: tecnicosNomes,
+              dados: data,
+            }),
+          })
+        } catch (saveError) {
+          console.error("Erro ao salvar relatório no histórico:", saveError)
+          // Continua mesmo se falhar ao salvar, pois o PDF já foi gerado
+        }
+        
         setShowPreview(true)
       } else {
         throw new Error(result.message || "Erro ao gerar o relatório")
@@ -1003,7 +1027,7 @@ const handleSendEmail = async () => {
             
             <Button 
               onClick={handleSendEmail} 
-              disabled={isSendingEmail || (!form.getValues("emails") && !form.getValues("emailCliente"))}
+              disabled={isSendingEmail}
               className="w-full justify-start"
               variant="outline"
             >
