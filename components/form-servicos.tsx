@@ -330,7 +330,9 @@ export function FormServicos() {
           const clienteNome = data.entidadesOrgaos?.[0]?.nome || "Cliente"
           const tecnicosNomes = data.tecnicosResponsaveis?.map(t => t.nome) || []
           
-          await fetch("/api/relatorios", {
+          console.log("[v0] Salvando relatório no banco:", { clienteNome, municipio: data.municipio, estado: data.estado })
+          
+          const saveResponse = await fetch("/api/relatorios", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -343,8 +345,11 @@ export function FormServicos() {
               dados: data,
             }),
           })
+          
+          const saveResult = await saveResponse.json()
+          console.log("[v0] Resultado do salvamento:", saveResult)
         } catch (saveError) {
-          console.error("Erro ao salvar relatório no histórico:", saveError)
+          console.error("[v0] Erro ao salvar relatório no histórico:", saveError)
           // Continua mesmo se falhar ao salvar, pois o PDF já foi gerado
         }
         
@@ -381,6 +386,10 @@ const handleSendEmail = async () => {
     const emails = form.getValues("emails")
     const emailCliente = form.getValues("emailCliente")
     
+    console.log("[v0] handleSendEmail chamado")
+    console.log("[v0] emails:", emails)
+    console.log("[v0] emailCliente:", emailCliente)
+    
     // Combinar emails internos + email do cliente
     const allEmails: string[] = []
     if (emails && emails.trim()) {
@@ -389,6 +398,8 @@ const handleSendEmail = async () => {
     if (emailCliente && emailCliente.trim()) {
       allEmails.push(emailCliente.trim())
     }
+    
+    console.log("[v0] allEmails:", allEmails)
     
     if (allEmails.length === 0) {
       toast({
