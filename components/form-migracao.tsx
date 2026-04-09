@@ -167,7 +167,7 @@ interface Funcionario {
 
 export function FormMigracao() {
   const { toast } = useToast()
-  
+
   const steps = [
     { title: "Localização", description: "Estado e município" },
     { title: "Entidades", description: "Órgãos e CNPJs" },
