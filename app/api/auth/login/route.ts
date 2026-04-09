@@ -22,12 +22,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Set session cookie
+    // Set session cookie - usando sameSite: 'none' para funcionar em iframes/preview
     const cookieStore = await cookies()
     cookieStore.set('session_token', result.token!, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: true,
+      sameSite: 'none',
       maxAge: 30 * 24 * 60 * 60, // 30 days
       path: '/'
     })

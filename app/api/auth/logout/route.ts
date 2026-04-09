@@ -8,7 +8,13 @@ export async function POST() {
 
     // Clear session cookie
     const cookieStore = await cookies()
-    cookieStore.delete('session_token')
+    cookieStore.set('session_token', '', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      maxAge: 0,
+      path: '/'
+    })
 
     return NextResponse.json({ success: true })
   } catch (error) {
