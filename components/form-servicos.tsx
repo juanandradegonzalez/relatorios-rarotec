@@ -131,6 +131,7 @@ const servicosOptions = [
   "Reunião",
   "Cadastro de Usuário",
   "Atendimento Remoto",
+  "Migração",
   "Outro",
 ]
 
