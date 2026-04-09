@@ -10,6 +10,7 @@ import { MultiSelectSimple } from "@/components/multi-select-simple"
 import { DatePickerSimple } from "@/components/date-picker-simple"
 import { FileUploader } from "@/components/file-uploader"
 import { generatePDF } from "@/lib/pdf-generator"
+import { format } from "date-fns"
 import { useToast } from "@/hooks/use-toast"
 import { Stepper, StepContent } from "@/components/ui/stepper"
 import {
@@ -23,12 +24,20 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form"
 import { Card, CardContent } from "@/components/ui/card"
-import { Loader2, Plus, Trash2, Search, Flag, ChevronLeft, ChevronRight, FileCheck, Mail } from "lucide-react"
+import { Loader2, Plus, Trash2, Search, Flag, ChevronLeft, ChevronRight, FileCheck, Mail, Download, Send, Eye, X } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { estados, estadosBandeiras, getMunicipiosPorEstado } from "@/lib/estados-municipios"
 import { cn } from "@/lib/utils"
@@ -122,29 +131,11 @@ const servicosOptions = [
   "Outro",
 ]
 
-const tecnicosOptions = [
-  "Alan Fernandes",
-  "Michaelly Brandão",
-  "Altarlê Macedo",
-  "Danielle Tavares",
-  "Fábio Júnior",
-  "Felipe Santos",
-  "Gerlane Dino",
-  "Iago Folgado",
-  "Igor Umeda",
-  "Jairo Filho",
-  "Jeferson Santana",
-  "Jhennyfer França",
-  "Leobaldo Henrique",
-  "Lúcio Monteiro",
-  "Larrisa Ferreira",
-  "Manoel Cabral",
-  "Itiberê Mariovith",
-  "Vivian Lima",
-  "Felipe Falleiros",
-  "Juan Gonzalez",
-  "Eugênio Albuquerque",
-]
+interface Funcionario {
+  id: string
+  name: string
+  email: string
+}
 
 export function FormServicos() {
   const { toast } = useToast()
@@ -157,7 +148,31 @@ export function FormServicos() {
   const [estadoBusca, setEstadoBusca] = useState("")
   const [municipioBusca, setMunicipioBusca] = useState("")
   const [imagemErros, setImagemErros] = useState<Record<string, boolean>>({})
+  const [funcionarios, setFuncionarios] = useState<Funcionario[]>([])
+  const [loadingFuncionarios, setLoadingFuncionarios] = useState(true)
+  const [showPreview, setShowPreview] = useState(false)
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null)
+  const [pdfData, setPdfData] = useState<{ base64: string; blob: Blob } | null>(null)
+  const [isSendingEmail, setIsSendingEmail] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
+
+  // Buscar funcionários do banco de dados
+  useEffect(() => {
+    async function fetchFuncionarios() {
+      try {
+        const res = await fetch('/api/funcionarios')
+        const data = await res.json()
+        if (data.funcionarios) {
+          setFuncionarios(data.funcionarios)
+        }
+      } catch (error) {
+        console.error('Erro ao buscar funcionários:', error)
+      } finally {
+        setLoadingFuncionarios(false)
+      }
+    }
+    fetchFuncionarios()
+  }, [])
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -303,11 +318,12 @@ export function FormServicos() {
         anexos,
       })
 
-      if (result.success) {
-        toast({
-          title: "Relatório gerado com sucesso",
-          description: result.message || "O relatório foi gerado e está pronto para download",
-        })
+      if (result.success && result.pdfBlob && result.pdfBase64) {
+        // Criar URL para preview
+        const previewUrl = URL.createObjectURL(result.pdfBlob)
+        setPdfPreviewUrl(previewUrl)
+        setPdfData({ base64: result.pdfBase64, blob: result.pdfBlob })
+        setShowPreview(true)
       } else {
         throw new Error(result.message || "Erro ao gerar o relatório")
       }
@@ -321,6 +337,96 @@ export function FormServicos() {
     } finally {
       setIsGenerating(false)
     }
+  }
+
+  const handleDownloadPDF = () => {
+    if (pdfData) {
+      const link = document.createElement('a')
+      link.href = URL.createObjectURL(pdfData.blob)
+      link.download = `relatorio-servicos-${format(new Date(), "dd-MM-yyyy")}.pdf`
+      link.click()
+      toast({
+        title: "Download iniciado",
+        description: "O relatório está sendo baixado.",
+      })
+    }
+  }
+
+  const handleSendEmail = async () => {
+    const emails = form.getValues("emails")
+    if (!emails || emails.trim() === "") {
+      toast({
+        title: "Email não informado",
+        description: "Informe pelo menos um email para enviar o relatório.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!pdfData) {
+      toast({
+        title: "PDF não disponível",
+        description: "Gere o relatório antes de enviar por email.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsSendingEmail(true)
+    try {
+      const emailList = emails.split(",").map(e => e.trim()).filter(e => e)
+      const data = form.getValues()
+      
+      const response = await fetch("/api/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          emails: emailList,
+          pdfBase64: pdfData.base64,
+          tipoRelatorio: "servicos",
+          municipio: data.municipio,
+          dataServico: data.dataServico ? format(new Date(data.dataServico), "dd/MM/yyyy") : null,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        toast({
+          title: "Email enviado",
+          description: result.message,
+        })
+      } else {
+        throw new Error(result.error || "Erro ao enviar email")
+      }
+    } catch (error) {
+      console.error("Erro ao enviar email:", error)
+      toast({
+        title: "Erro ao enviar email",
+        description: "Não foi possível enviar o email. Verifique se o serviço de email está configurado.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSendingEmail(false)
+    }
+  }
+
+  const handleClosePreview = () => {
+    setShowPreview(false)
+    if (pdfPreviewUrl) {
+      URL.revokeObjectURL(pdfPreviewUrl)
+      setPdfPreviewUrl(null)
+    }
+  }
+
+  const handleConfirmAndClose = () => {
+    handleClosePreview()
+    setPdfData(null)
+    limparFormulario()
+    toast({
+      title: "Relatório finalizado",
+      description: "O relatório foi gerado com sucesso.",
+    })
   }
 
   const limparFormulario = () => {
@@ -653,20 +759,51 @@ export function FormServicos() {
                     <FormLabel>Técnico(s) Especializado(s) da Rarotec *</FormLabel>
                     <FormDescription>Selecione os técnicos que realizaram o serviço</FormDescription>
                     <FormControl>
-                      <MultiSelectSimple
-                        options={tecnicosOptions.map((option) => ({
-                          label: option,
-                          value: option,
-                        }))}
-                        selected={field.value || []}
-                        onChange={field.onChange}
-                        placeholder="Selecione os técnicos"
-                      />
+                      {loadingFuncionarios ? (
+                        <div className="flex items-center gap-2 p-3 border rounded-md text-muted-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Carregando funcionários...
+                        </div>
+                      ) : (
+                        <MultiSelectSimple
+                          options={funcionarios.map((func) => ({
+                            label: func.name,
+                            value: func.name,
+                          }))}
+                          selected={field.value || []}
+                          onChange={field.onChange}
+                          placeholder="Selecione os técnicos"
+                        />
+                      )}
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
+              {/* Mostrar emails dos técnicos selecionados */}
+              {form.watch("tecnicos")?.length > 0 && (
+                <Card className="border-primary/20 bg-primary/5">
+                  <CardContent className="p-4">
+                    <h4 className="font-medium mb-3 text-sm flex items-center gap-2">
+                      <Mail className="h-4 w-4" />
+                      Emails dos técnicos selecionados:
+                    </h4>
+                    <ul className="space-y-2">
+                      {form.watch("tecnicos")?.map((tecnicoNome) => {
+                        const funcionario = funcionarios.find(f => f.name === tecnicoNome)
+                        return funcionario ? (
+                          <li key={funcionario.id} className="flex items-center gap-2 text-sm">
+                            <span className="font-medium">{funcionario.name}</span>
+                            <span className="text-muted-foreground">-</span>
+                            <span className="text-primary">{funcionario.email}</span>
+                          </li>
+                        ) : null
+                      })}
+                    </ul>
+                  </CardContent>
+                </Card>
+              )}
 
               <div className="space-y-4">
                 <div>
@@ -812,6 +949,68 @@ export function FormServicos() {
           </div>
         </div>
       </form>
+
+      {/* Modal de Preview do PDF */}
+      <Dialog open={showPreview} onOpenChange={setShowPreview}>
+        <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5" />
+              Preview do Relatório
+            </DialogTitle>
+            <DialogDescription>
+              Revise o relatório antes de baixar ou enviar por email.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex-1 min-h-0 bg-muted rounded-lg overflow-hidden">
+            {pdfPreviewUrl && (
+              <iframe
+                src={pdfPreviewUrl}
+                className="w-full h-full border-0"
+                title="Preview do PDF"
+              />
+            )}
+          </div>
+
+          <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Button variant="outline" onClick={handleClosePreview} className="flex-1 sm:flex-none">
+                <X className="h-4 w-4 mr-2" />
+                Fechar
+              </Button>
+              <Button variant="outline" onClick={handleDownloadPDF} className="flex-1 sm:flex-none">
+                <Download className="h-4 w-4 mr-2" />
+                Baixar PDF
+              </Button>
+            </div>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Button 
+                onClick={handleSendEmail} 
+                disabled={isSendingEmail || !form.getValues("emails")}
+                variant="secondary"
+                className="flex-1 sm:flex-none"
+              >
+                {isSendingEmail ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Enviando...
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4 mr-2" />
+                    Enviar por Email
+                  </>
+                )}
+              </Button>
+              <Button onClick={handleConfirmAndClose} className="flex-1 sm:flex-none">
+                <FileCheck className="h-4 w-4 mr-2" />
+                Concluir
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Form>
   )
 }
