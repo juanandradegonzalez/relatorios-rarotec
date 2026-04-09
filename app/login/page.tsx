@@ -54,16 +54,16 @@ export default function LoginPage() {
           <Logo size="lg" showTagline />
         </div>
 
-        <Card className="border-primary/20 shadow-2xl shadow-primary/10 bg-card/70 backdrop-blur-xl">
+        <Card className="border-border shadow-xl bg-white/90 backdrop-blur-sm">
           <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-xl text-center">Entrar no Sistema</CardTitle>
+            <CardTitle className="text-xl text-center text-foreground">Entrar no Sistema</CardTitle>
             <CardDescription className="text-center">
               Use suas credenciais para acessar
             </CardDescription>
           </CardHeader>
           <CardContent>
             {error && (
-              <div className="mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20 flex items-center gap-2 text-destructive text-sm">
+              <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 flex items-center gap-2 text-red-600 text-sm">
                 <AlertCircle className="h-4 w-4 flex-shrink-0" />
                 <span>{error}</span>
               </div>
@@ -71,7 +71,7 @@ export default function LoginPage() {
 
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email" className="text-foreground">Email</Label>
                 <Input
                   id="email"
                   type="email"
@@ -80,11 +80,11 @@ export default function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   disabled={isLoading}
-                  className="bg-background/50"
+                  className="bg-white border-gray-200"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Senha</Label>
+                <Label htmlFor="password" className="text-foreground">Senha</Label>
                 <Input
                   id="password"
                   type="password"
@@ -93,7 +93,7 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   disabled={isLoading}
-                  className="bg-background/50"
+                  className="bg-white border-gray-200"
                 />
               </div>
               <Button type="submit" className="w-full" disabled={isLoading}>
