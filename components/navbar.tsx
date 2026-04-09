@@ -31,7 +31,7 @@ export function Navbar() {
   ]
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-primary/10 bg-background/60 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white/90 backdrop-blur-xl shadow-sm">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-6">
           <Link href="/">
@@ -45,8 +45,8 @@ export function Navbar() {
                   variant={pathname === item.href ? "secondary" : "ghost"}
                   size="sm"
                   className={cn(
-                    "gap-2",
-                    pathname === item.href && "bg-primary/10 text-primary hover:bg-primary/20"
+                    "gap-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100",
+                    pathname === item.href && "bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary"
                   )}
                 >
                   <item.icon className="h-4 w-4" />
@@ -60,20 +60,20 @@ export function Navbar() {
         {user && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="gap-2">
+              <Button variant="ghost" className="gap-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100">
                 <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
                   <User className="h-4 w-4 text-primary" />
                 </div>
                 <span className="hidden sm:inline-block max-w-[150px] truncate">
                   {user.name}
                 </span>
-                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                <ChevronDown className="h-4 w-4 text-gray-500" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuContent align="end" className="w-56 bg-white border-gray-200">
               <div className="px-2 py-1.5">
-                <p className="text-sm font-medium">{user.name}</p>
-                <p className="text-xs text-muted-foreground">{user.email}</p>
+                <p className="text-sm font-medium text-gray-900">{user.name}</p>
+                <p className="text-xs text-gray-500">{user.email}</p>
               </div>
               <DropdownMenuSeparator />
               <div className="md:hidden">

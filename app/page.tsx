@@ -44,10 +44,10 @@ export default function Page() {
           {!selectedForm ? (
             <>
               <div className="text-center mb-10">
-                <h1 className="text-3xl font-bold text-foreground mb-3 text-balance">
+                <h1 className="text-3xl font-bold text-gray-900 mb-3 text-balance">
                   Gerador de Relatórios Técnicos
                 </h1>
-                <p className="text-muted-foreground max-w-xl mx-auto">
+                <p className="text-gray-600 max-w-xl mx-auto">
                   Selecione o tipo de relatório que deseja gerar. Preencha as informações 
                   e o sistema criará um PDF profissional automaticamente.
                 </p>
@@ -55,20 +55,20 @@ export default function Page() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Card 
-                  className="group cursor-pointer card-glow bg-card/80 backdrop-blur-sm"
+                  className="group cursor-pointer bg-white border-gray-200 shadow-lg hover:shadow-xl hover:border-primary/30 transition-all"
                   onClick={() => setSelectedForm("servicos")}
                 >
                   <CardHeader className="text-center pb-2">
                     <div className="mx-auto mb-4 h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
                       <Server className="h-8 w-8 text-primary" />
                     </div>
-                    <CardTitle className="text-xl">Relatório de Serviços</CardTitle>
-                    <CardDescription>
+                    <CardTitle className="text-xl text-gray-900">Relatório de Serviços</CardTitle>
+                    <CardDescription className="text-gray-600">
                       Para serviços técnicos, manutenções e atendimentos em campo
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <ul className="text-sm text-muted-foreground space-y-2 mb-6">
+                    <ul className="text-sm text-gray-700 space-y-2 mb-6">
                       <li className="flex items-center gap-2">
                         <div className="h-1.5 w-1.5 rounded-full bg-primary" />
                         Dados do cliente e local
@@ -86,27 +86,27 @@ export default function Page() {
                         Anexos e fotos
                       </li>
                     </ul>
-                    <Button className="w-full group-hover:bg-primary group-hover:text-primary-foreground">
+                    <Button className="w-full">
                       Selecionar <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </CardContent>
                 </Card>
 
                 <Card 
-                  className="group cursor-pointer card-glow bg-card/80 backdrop-blur-sm"
+                  className="group cursor-pointer bg-white border-gray-200 shadow-lg hover:shadow-xl hover:border-primary/30 transition-all"
                   onClick={() => setSelectedForm("migracao")}
                 >
                   <CardHeader className="text-center pb-2">
                     <div className="mx-auto mb-4 h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
                       <Database className="h-8 w-8 text-primary" />
                     </div>
-                    <CardTitle className="text-xl">Relatório de Migração</CardTitle>
-                    <CardDescription>
+                    <CardTitle className="text-xl text-gray-900">Relatório de Migração</CardTitle>
+                    <CardDescription className="text-gray-600">
                       Para processos de migração de dados e sistemas
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <ul className="text-sm text-muted-foreground space-y-2 mb-6">
+                    <ul className="text-sm text-gray-700 space-y-2 mb-6">
                       <li className="flex items-center gap-2">
                         <div className="h-1.5 w-1.5 rounded-full bg-primary" />
                         Informações do ambiente
@@ -124,7 +124,7 @@ export default function Page() {
                         Relatório completo
                       </li>
                     </ul>
-                    <Button className="w-full group-hover:bg-primary group-hover:text-primary-foreground">
+                    <Button className="w-full">
                       Selecionar <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </CardContent>
@@ -134,21 +134,21 @@ export default function Page() {
           ) : (
             <div className="space-y-6">
               <div className="flex items-center gap-4">
-                <Button variant="ghost" size="sm" onClick={() => setSelectedForm(null)}>
+                <Button variant="outline" size="sm" onClick={() => setSelectedForm(null)} className="text-gray-700 border-gray-300 hover:bg-gray-100">
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Voltar
                 </Button>
                 <div>
-                  <h1 className="text-2xl font-bold text-foreground">
+                  <h1 className="text-2xl font-bold text-gray-900">
                     {selectedForm === "servicos" ? "Relatório de Serviços" : "Relatório de Migração"}
                   </h1>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-gray-600">
                     Preencha todas as etapas para gerar o relatório
                   </p>
                 </div>
               </div>
 
-              <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+              <Card className="border-gray-200 bg-white shadow-lg">
                 <CardContent className="p-6">
                   {selectedForm === "servicos" ? <FormServicos /> : <FormMigracao />}
                 </CardContent>
@@ -158,8 +158,8 @@ export default function Page() {
         </div>
       </main>
 
-      <footer className="border-t border-border/40 py-6 mt-10">
-        <div className="container text-center text-sm text-muted-foreground">
+      <footer className="border-t border-gray-200 py-6 mt-10">
+        <div className="container text-center text-sm text-gray-500">
           &copy; {new Date().getFullYear()} Rarotec Tecnologia. Todos os direitos reservados.
         </div>
       </footer>
