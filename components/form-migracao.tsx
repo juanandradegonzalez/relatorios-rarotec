@@ -87,16 +87,6 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>
 
-const steps = [
-  { title: "Localização", description: "Estado e município" },
-  { title: "Entidades", description: "Órgãos e CNPJs" },
-  { title: "Módulos", description: "Sistemas contratados" },
-  { title: "Etapas", description: "Etapas da migração" },
-  { title: "Situações", description: "Críticas e soluções" },
-  { title: "Equipe", description: "Técnicos e data" },
-  { title: "Anexos", description: "Documentos e email" },
-]
-
 const entidadesOptions = [
   "Prefeitura Municipal",
   "Câmara Municipal",
@@ -177,6 +167,17 @@ interface Funcionario {
 
 export function FormMigracao() {
   const { toast } = useToast()
+  
+  const steps = [
+    { title: "Localização", description: "Estado e município" },
+    { title: "Entidades", description: "Órgãos e CNPJs" },
+    { title: "Módulos", description: "Sistemas contratados" },
+    { title: "Etapas", description: "Etapas da migração" },
+    { title: "Situações", description: "Críticas e soluções" },
+    { title: "Equipe", description: "Técnicos e data" },
+    { title: "Anexos", description: "Documentos e email" },
+  ]
+  
   const [currentStep, setCurrentStep] = useState(0)
   const [isGenerating, setIsGenerating] = useState(false)
   const [anexos, setAnexos] = useState<File[]>([])
