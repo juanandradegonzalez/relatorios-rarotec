@@ -37,12 +37,13 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form"
 import { Card, CardContent } from "@/components/ui/card"
-import { Loader2, Plus, Trash2, Search, Flag, ChevronLeft, ChevronRight, FileCheck, Mail, Download, Send } from "lucide-react"
+import { Loader2, Plus, Trash2, Search, Flag, ChevronLeft, ChevronRight, FileCheck, Mail, Download, Send, Database } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { estados, estadosBandeiras, getMunicipiosPorEstado } from "@/lib/estados-municipios"
 import { cn } from "@/lib/utils"
 
 const formSchema = z.object({
+  tipoRelatorio: z.enum(["servicos", "migracao"], { required_error: "Selecione o tipo de relatório" }),
   emails: z.string().optional(),
   emailCliente: z.string().email("Email inválido").optional().or(z.literal("")),
   estado: z.string().min(1, "Selecione o estado"),
@@ -75,6 +76,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>
 
 const steps = [
+  { title: "Tipo", description: "Tipo de relatório" },
   { title: "Localização", description: "Estado e município" },
   { title: "Entidades", description: "Órgãos e CNPJs" },
   { title: "Serviços", description: "Módulos e atividades" },
@@ -178,6 +180,7 @@ export function FormServicos() {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      tipoRelatorio: undefined,
       emails: "",
       estado: "",
       municipio: "",
@@ -279,8 +282,9 @@ export function FormServicos() {
     )
   }
 
-  const validateStep = async (step: number): Promise<boolean> => {
+const validateStep = async (step: number): Promise<boolean> => {
     const fieldsToValidate: (keyof FormValues)[][] = [
+      ["tipoRelatorio"],
       ["estado", "municipio"],
       ["entidadesOrgaos"],
       ["modulos", "servicosRealizados"],
@@ -313,8 +317,8 @@ export function FormServicos() {
     try {
       setIsGenerating(true)
 
-      const result = await generatePDF({
-        tipoRelatorio: "servicos",
+const result = await generatePDF({
+        tipoRelatorio: data.tipoRelatorio,
         dados: data,
         anexos,
       })
@@ -341,7 +345,7 @@ export function FormServicos() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              tipo: "servicos",
+              tipo: data.tipoRelatorio,
               cliente: clienteNome,
               municipio: data.municipio,
               estado: data.estado,
@@ -527,8 +531,70 @@ const handleSendEmail = async () => {
       <form ref={formRef} onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <Stepper steps={steps} currentStep={currentStep} />
 
-        {/* Step 0: Localização */}
+{/* Step 0: Tipo de Relatório */}
         {currentStep === 0 && (
+          <StepContent>
+            <div className="space-y-6">
+              <FormField
+                control={form.control}
+                name="tipoRelatorio"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tipo de Relatório *</FormLabel>
+                    <FormDescription>
+                      Selecione o tipo de relatório que deseja gerar
+                    </FormDescription>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                      <Card 
+                        className={cn(
+                          "cursor-pointer transition-all hover:shadow-md",
+                          field.value === "servicos" 
+                            ? "border-primary bg-primary/5 ring-2 ring-primary" 
+                            : "border-gray-200 hover:border-primary/50"
+                        )}
+                        onClick={() => field.onChange("servicos")}
+                      >
+                        <CardContent className="p-6 text-center">
+                          <div className="mx-auto mb-3 h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                            <FileCheck className="h-6 w-6 text-primary" />
+                          </div>
+                          <h3 className="font-semibold text-gray-900">Relatório de Serviços</h3>
+                          <p className="text-sm text-gray-600 mt-1">
+                            Serviços técnicos, manutenções e atendimentos
+                          </p>
+                        </CardContent>
+                      </Card>
+                      
+                      <Card 
+                        className={cn(
+                          "cursor-pointer transition-all hover:shadow-md",
+                          field.value === "migracao" 
+                            ? "border-primary bg-primary/5 ring-2 ring-primary" 
+                            : "border-gray-200 hover:border-primary/50"
+                        )}
+                        onClick={() => field.onChange("migracao")}
+                      >
+                        <CardContent className="p-6 text-center">
+                          <div className="mx-auto mb-3 h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                            <Database className="h-6 w-6 text-primary" />
+                          </div>
+                          <h3 className="font-semibold text-gray-900">Relatório de Migração</h3>
+                          <p className="text-sm text-gray-600 mt-1">
+                            Processos de migração de dados e sistemas
+                          </p>
+                        </CardContent>
+                      </Card>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </StepContent>
+        )}
+
+        {/* Step 1: Localização */}
+        {currentStep === 1 && (
           <StepContent>
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -614,8 +680,8 @@ const handleSendEmail = async () => {
           </StepContent>
         )}
 
-        {/* Step 1: Entidades */}
-        {currentStep === 1 && (
+        {/* Step 2: Entidades */}
+        {currentStep === 2 && (
           <StepContent>
             <div className="space-y-6">
               <div>
@@ -681,7 +747,7 @@ const handleSendEmail = async () => {
         )}
 
         {/* Step 2: Serviços */}
-        {currentStep === 2 && (
+        {currentStep === 3 && (
           <StepContent>
             <div className="space-y-6">
               <FormField
@@ -766,7 +832,7 @@ const handleSendEmail = async () => {
         )}
 
         {/* Step 3: Detalhes */}
-        {currentStep === 3 && (
+        {currentStep === 4 && (
           <StepContent>
             <div className="space-y-6">
               <FormField
@@ -804,7 +870,7 @@ const handleSendEmail = async () => {
         )}
 
         {/* Step 4: Equipe */}
-        {currentStep === 4 && (
+        {currentStep === 5 && (
           <StepContent>
             <div className="space-y-6">
               <FormField
@@ -915,7 +981,7 @@ const handleSendEmail = async () => {
         )}
 
         {/* Step 5: Anexos e Email */}
-        {currentStep === 5 && (
+        {currentStep === 6 && (
           <StepContent>
             <div className="space-y-6">
               <FormField
