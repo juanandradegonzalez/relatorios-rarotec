@@ -127,17 +127,13 @@ export async function POST(request: NextRequest) {
     const user = await getCurrentUser()
     
     if (!user) {
-      console.log("[v0] POST /api/relatorios - Não autenticado")
       return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
     }
 
     const body = await request.json()
-    console.log("[v0] POST /api/relatorios - Body recebido:", body)
-    
     const { tipo, cliente, municipio, estado, dataAtendimento, tecnicos, dados, pdfUrl } = body
 
     if (!tipo || !cliente || !dataAtendimento) {
-      console.log("[v0] POST /api/relatorios - Campos faltando:", { tipo, cliente, dataAtendimento })
       return NextResponse.json(
         { error: 'Campos obrigatórios: tipo, cliente, dataAtendimento' },
         { status: 400 }
@@ -155,9 +151,7 @@ export async function POST(request: NextRequest) {
       relatorio: result[0] 
     })
   } catch (error: any) {
-    console.error('[v0] Error creating relatorio:', error)
-    console.error('[v0] Error message:', error?.message)
-    console.error('[v0] Error code:', error?.code)
+    console.error('Error creating relatorio:', error?.message || error)
     return NextResponse.json({ 
       error: 'Erro ao criar relatório', 
       details: error?.message || 'Erro desconhecido'

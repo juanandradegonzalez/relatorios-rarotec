@@ -360,14 +360,14 @@ const validateStep = async (step: number): Promise<boolean> => {
           
           
           
-          console.log("[v0] Salvando relatório no histórico...")
-          console.log("[v0] Dados:", { tipo: data.tipoRelatorio, cliente: clienteNome, municipio: data.municipio, estado: data.estado })
+          // Abreviar tipo para caber no banco VARCHAR(2)
+          const tipoAbreviado = data.tipoRelatorio === "servicos" ? "SV" : "MG"
           
           const saveResponse = await fetch("/api/relatorios", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              tipo: data.tipoRelatorio,
+              tipo: tipoAbreviado,
               cliente: clienteNome,
               municipio: data.municipio,
               estado: data.estado,
