@@ -315,10 +315,18 @@ const validateStep = async (step: number): Promise<boolean> => {
   }
 
   const onSubmit = async (data: FormValues) => {
+    console.log("[v0] onSubmit chamado - currentStep:", currentStep)
+    
+    // Só gera o PDF se estiver na última etapa
+    if (currentStep !== steps.length - 1) {
+      console.log("[v0] Não está na última etapa, ignorando submit")
+      return
+    }
+    
     try {
       setIsGenerating(true)
 
-const result = await generatePDF({
+      const result = await generatePDF({
         tipoRelatorio: data.tipoRelatorio,
         dados: data,
         anexos,
