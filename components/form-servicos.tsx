@@ -360,14 +360,11 @@ const validateStep = async (step: number): Promise<boolean> => {
           
           
           
-          // Abreviar tipo para caber no banco (VARCHAR)
-          const tipoAbreviado = data.tipoRelatorio === "servicos" ? "SV" : "MG"
-          
           const saveResponse = await fetch("/api/relatorios", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              tipo: tipoAbreviado,
+              tipo: data.tipoRelatorio,
               cliente: clienteNome,
               municipio: data.municipio,
               estado: data.estado,

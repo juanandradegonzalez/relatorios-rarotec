@@ -864,8 +864,6 @@ export async function generatePDF({ tipoRelatorio, dados, anexos }: PDFGenerator
     const imageAnexos = anexos?.filter(a => a.type.startsWith('image/')) || []
     const pdfAnexos = anexos?.filter(a => a.type === 'application/pdf') || []
     
-    console.log("[v0] Anexos - imagens:", imageAnexos.length, "pdfs:", pdfAnexos.length)
-    
     if (imageAnexos.length > 0) {
       await addAnexosToDoc(doc, imageAnexos, tipoRelatorio)
     }
@@ -877,47 +875,34 @@ export async function generatePDF({ tipoRelatorio, dados, anexos }: PDFGenerator
       addFooter(doc, i, totalPages)
     }
 
-    console.log("[v0] Gerando PDF principal...")
-
     // Gerar o PDF principal como ArrayBuffer
     const mainPdfArrayBuffer = doc.output('arraybuffer')
     
-    console.log("[v0] PDF principal gerado, tamanho:", mainPdfArrayBuffer.byteLength)
-    
     // Se houver PDFs anexados, mesclar usando pdf-lib
     if (pdfAnexos.length > 0) {
-      console.log("[v0] Mesclando PDFs anexados...")
       try {
         // Carregar o PDF principal
         const mergedPdf = await PDFDocument.load(mainPdfArrayBuffer)
-        console.log("[v0] PDF principal carregado para mesclagem")
         
         // Mesclar cada PDF anexado
         for (const pdfFile of pdfAnexos) {
-          console.log("[v0] Processando PDF anexado:", pdfFile.name)
           try {
             const pdfBytes = await pdfFile.arrayBuffer()
-            console.log("[v0] PDF bytes carregados:", pdfBytes.byteLength)
             const attachedPdf = await PDFDocument.load(pdfBytes)
-            console.log("[v0] PDF anexado carregado, páginas:", attachedPdf.getPageCount())
             const copiedPages = await mergedPdf.copyPages(attachedPdf, attachedPdf.getPageIndices())
             
             copiedPages.forEach((page) => {
               mergedPdf.addPage(page)
             })
-            console.log("[v0] Páginas copiadas com sucesso")
           } catch (err) {
-            console.error(`[v0] Erro ao mesclar PDF anexado (${pdfFile.name}):`, err)
+            console.error(`Erro ao mesclar PDF anexado (${pdfFile.name}):`, err)
           }
         }
         
-        console.log("[v0] Salvando PDF mesclado final...")
         // Gerar o PDF mesclado final
         const mergedPdfBytes = await mergedPdf.save()
-        console.log("[v0] PDF mesclado salvo, tamanho:", mergedPdfBytes.byteLength)
         const mergedBlob = new Blob([mergedPdfBytes], { type: 'application/pdf' })
         const mergedBase64 = await blobToBase64(mergedBlob)
-        console.log("[v0] PDF convertido para base64")
         
         return {
           success: true,
