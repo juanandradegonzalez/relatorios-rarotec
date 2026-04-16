@@ -320,11 +320,8 @@ const validateStep = async (step: number): Promise<boolean> => {
   }
 
   const nextStep = async () => {
-    console.log("[v0] nextStep called - currentStep:", currentStep)
     const isValid = await validateStep(currentStep)
-    console.log("[v0] validation result:", isValid)
     if (isValid && currentStep < steps.length - 1) {
-      console.log("[v0] Moving to step:", currentStep + 1)
       setCurrentStep(currentStep + 1)
     }
   }
@@ -336,15 +333,6 @@ const validateStep = async (step: number): Promise<boolean> => {
   }
 
   const onSubmit = async (data: FormValues) => {
-    console.log("[v0] onSubmit called - currentStep:", currentStep, "steps.length:", steps.length)
-    
-    // Só gera o PDF se estiver na última etapa
-    if (currentStep !== steps.length - 1) {
-      console.log("[v0] Not on last step, returning")
-      return
-    }
-    
-    console.log("[v0] Generating PDF...")
     try {
       setIsGenerating(true)
 
@@ -372,11 +360,14 @@ const validateStep = async (step: number): Promise<boolean> => {
           
           
           
+          // Abreviar tipo para caber no banco (VARCHAR)
+          const tipoAbreviado = data.tipoRelatorio === "servicos" ? "SV" : "MG"
+          
           const saveResponse = await fetch("/api/relatorios", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              tipo: data.tipoRelatorio,
+              tipo: tipoAbreviado,
               cliente: clienteNome,
               municipio: data.municipio,
               estado: data.estado,
@@ -550,13 +541,7 @@ const handleSendEmail = async () => {
     <Form {...form}>
       <form 
           ref={formRef} 
-          onSubmit={form.handleSubmit(onSubmit)} 
-          onKeyDown={(e) => {
-            // Prevenir submit ao pressionar Enter (exceto no botão de submit)
-            if (e.key === 'Enter' && e.target instanceof HTMLInputElement) {
-              e.preventDefault()
-            }
-          }}
+          onSubmit={(e) => e.preventDefault()}
           className="space-y-8"
         >
         <Stepper steps={steps} currentStep={currentStep} />
@@ -1104,7 +1089,12 @@ const handleSendEmail = async () => {
                 <ChevronRight className="h-4 w-4 ml-2" />
               </Button>
             ) : (
-              <Button type="submit" disabled={isGenerating} className="min-w-[180px]">
+              <Button 
+                type="button" 
+                disabled={isGenerating} 
+                className="min-w-[180px]"
+                onClick={() => form.handleSubmit(onSubmit)()}
+              >
                 {isGenerating ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
