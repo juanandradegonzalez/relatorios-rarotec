@@ -1,6 +1,7 @@
 import { jsPDF } from "jspdf"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
+import { PDFDocument } from "pdf-lib"
 
 interface PDFGeneratorResult {
   success: boolean
@@ -859,19 +860,63 @@ export async function generatePDF({ tipoRelatorio, dados, anexos }: PDFGenerator
       addMigracaoContent(doc, dados)
     }
 
-    // Adicionar anexos (imagens) ao PDF
-    if (anexos && anexos.length > 0) {
-      await addAnexosToDoc(doc, anexos, tipoRelatorio)
+    // Adicionar anexos (imagens) ao PDF - apenas para imagens
+    const imageAnexos = anexos?.filter(a => a.type.startsWith('image/')) || []
+    const pdfAnexos = anexos?.filter(a => a.type === 'application/pdf') || []
+    
+    if (imageAnexos.length > 0) {
+      await addAnexosToDoc(doc, imageAnexos, tipoRelatorio)
     }
 
-    // Adicionar rodapé em todas as páginas
+    // Adicionar rodapé em todas as páginas do relatório principal
     const totalPages = doc.internal.getNumberOfPages()
     for (let i = 1; i <= totalPages; i++) {
       doc.setPage(i)
       addFooter(doc, i, totalPages)
     }
 
-    // Gerar o PDF como base64 e Blob (não salvar automaticamente)
+    // Gerar o PDF principal como ArrayBuffer
+    const mainPdfArrayBuffer = doc.output('arraybuffer')
+    
+    // Se houver PDFs anexados, mesclar usando pdf-lib
+    if (pdfAnexos.length > 0) {
+      try {
+        // Carregar o PDF principal
+        const mergedPdf = await PDFDocument.load(mainPdfArrayBuffer)
+        
+        // Mesclar cada PDF anexado
+        for (const pdfFile of pdfAnexos) {
+          try {
+            const pdfBytes = await pdfFile.arrayBuffer()
+            const attachedPdf = await PDFDocument.load(pdfBytes)
+            const copiedPages = await mergedPdf.copyPages(attachedPdf, attachedPdf.getPageIndices())
+            
+            copiedPages.forEach((page) => {
+              mergedPdf.addPage(page)
+            })
+          } catch (err) {
+            console.error(`Erro ao mesclar PDF anexado (${pdfFile.name}):`, err)
+          }
+        }
+        
+        // Gerar o PDF mesclado final
+        const mergedPdfBytes = await mergedPdf.save()
+        const mergedBlob = new Blob([mergedPdfBytes], { type: 'application/pdf' })
+        const mergedBase64 = await blobToBase64(mergedBlob)
+        
+        return {
+          success: true,
+          message: "O relatório foi gerado com sucesso, incluindo os documentos anexados.",
+          pdfBase64: mergedBase64,
+          pdfBlob: mergedBlob,
+        }
+      } catch (err) {
+        console.error("Erro ao mesclar PDFs:", err)
+        // Se falhar, retornar apenas o PDF principal
+      }
+    }
+    
+    // Se não houver PDFs para mesclar ou se falhar, retornar o PDF principal
     const pdfBase64 = doc.output('datauristring').split(',')[1]
     const pdfBlob = doc.output('blob')
 
@@ -1010,6 +1055,19 @@ function getImageDimensions(base64: string): Promise<{ width: number; height: nu
     img.onload = () => resolve({ width: img.width, height: img.height })
     img.onerror = reject
     img.src = base64
+  })
+}
+
+// Função auxiliar para converter Blob para base64
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      const base64 = (reader.result as string).split(',')[1]
+      resolve(base64)
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(blob)
   })
 }
 
