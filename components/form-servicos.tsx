@@ -320,8 +320,11 @@ const validateStep = async (step: number): Promise<boolean> => {
   }
 
   const nextStep = async () => {
+    console.log("[v0] nextStep called - currentStep:", currentStep)
     const isValid = await validateStep(currentStep)
+    console.log("[v0] validation result:", isValid)
     if (isValid && currentStep < steps.length - 1) {
+      console.log("[v0] Moving to step:", currentStep + 1)
       setCurrentStep(currentStep + 1)
     }
   }
@@ -333,11 +336,15 @@ const validateStep = async (step: number): Promise<boolean> => {
   }
 
   const onSubmit = async (data: FormValues) => {
+    console.log("[v0] onSubmit called - currentStep:", currentStep, "steps.length:", steps.length)
+    
     // Só gera o PDF se estiver na última etapa
     if (currentStep !== steps.length - 1) {
+      console.log("[v0] Not on last step, returning")
       return
     }
     
+    console.log("[v0] Generating PDF...")
     try {
       setIsGenerating(true)
 
