@@ -859,8 +859,10 @@ export async function generatePDF({ tipoRelatorio, dados, anexos }: PDFGenerator
       addMigracaoContent(doc, dados)
     }
 
-    // Remover a chamada para addSignatures
-    // addSignatures(doc, dados) - Removido conforme solicitado
+    // Adicionar anexos (imagens) ao PDF
+    if (anexos && anexos.length > 0) {
+      await addAnexosToDoc(doc, anexos, tipoRelatorio)
+    }
 
     // Adicionar rodapé em todas as páginas
     const totalPages = doc.internal.getNumberOfPages()
@@ -886,6 +888,129 @@ export async function generatePDF({ tipoRelatorio, dados, anexos }: PDFGenerator
       message: "Ocorreu um erro ao gerar o relatório. Por favor, tente novamente.",
     }
   }
+}
+
+// Função para adicionar anexos (imagens) ao documento PDF
+async function addAnexosToDoc(doc: jsPDF, anexos: File[], tipoRelatorio: string): Promise<void> {
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const pageHeight = doc.internal.pageSize.getHeight()
+  const margin = 15
+  const contentWidth = pageWidth - 2 * margin
+  const maxImageHeight = pageHeight - 100 // Altura máxima para imagem
+  
+  // Adicionar nova página para anexos
+  doc.addPage()
+  addHeader(doc, tipoRelatorio)
+  
+  let yPos = 45
+  
+  // Título da seção de anexos
+  yPos = addSectionTitle(doc, "DOCUMENTOS ANEXADOS", margin, yPos)
+  
+  for (let i = 0; i < anexos.length; i++) {
+    const anexo = anexos[i]
+    const isImage = anexo.type.startsWith('image/')
+    
+    // Verificar se precisa de nova página
+    if (yPos > pageHeight - 80) {
+      doc.addPage()
+      addHeader(doc, tipoRelatorio)
+      yPos = 45
+    }
+    
+    // Título do anexo
+    doc.setFillColor(COLORS.tableRowEven[0], COLORS.tableRowEven[1], COLORS.tableRowEven[2])
+    doc.rect(margin, yPos, contentWidth, 12, "F")
+    
+    doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2])
+    doc.setFontSize(10)
+    doc.setFont("helvetica", "bold")
+    doc.text(`Anexo ${i + 1}: ${anexo.name}`, margin + 5, yPos + 8)
+    
+    yPos += 15
+    
+    if (isImage) {
+      try {
+        // Converter arquivo para base64
+        const base64 = await fileToBase64(anexo)
+        
+        // Obter dimensões da imagem
+        const imgDimensions = await getImageDimensions(base64)
+        
+        // Calcular dimensões proporcionais
+        let imgWidth = contentWidth - 10
+        let imgHeight = (imgDimensions.height / imgDimensions.width) * imgWidth
+        
+        // Limitar altura máxima
+        if (imgHeight > maxImageHeight) {
+          imgHeight = maxImageHeight
+          imgWidth = (imgDimensions.width / imgDimensions.height) * imgHeight
+        }
+        
+        // Centralizar imagem
+        const imgX = margin + (contentWidth - imgWidth) / 2
+        
+        // Verificar se cabe na página atual
+        if (yPos + imgHeight > pageHeight - 30) {
+          doc.addPage()
+          addHeader(doc, tipoRelatorio)
+          yPos = 45
+        }
+        
+        // Adicionar borda/moldura para a imagem
+        doc.setDrawColor(COLORS.tableBorder[0], COLORS.tableBorder[1], COLORS.tableBorder[2])
+        doc.setLineWidth(0.3)
+        doc.rect(imgX - 2, yPos - 2, imgWidth + 4, imgHeight + 4)
+        
+        // Adicionar imagem
+        doc.addImage(base64, 'JPEG', imgX, yPos, imgWidth, imgHeight)
+        
+        yPos += imgHeight + 15
+      } catch (error) {
+        // Se falhar ao adicionar imagem, mostrar placeholder
+        doc.setTextColor(COLORS.textLight[0], COLORS.textLight[1], COLORS.textLight[2])
+        doc.setFontSize(9)
+        doc.setFont("helvetica", "italic")
+        doc.text(`[Imagem não pôde ser carregada: ${anexo.name}]`, margin + 5, yPos + 5)
+        yPos += 15
+      }
+    } else {
+      // Para arquivos não-imagem, apenas listar informações
+      doc.setFillColor(COLORS.sectionBg[0], COLORS.sectionBg[1], COLORS.sectionBg[2])
+      doc.roundedRect(margin, yPos, contentWidth, 25, 3, 3, "F")
+      
+      doc.setTextColor(COLORS.text[0], COLORS.text[1], COLORS.text[2])
+      doc.setFontSize(9)
+      doc.setFont("helvetica", "normal")
+      
+      const fileSizeMB = (anexo.size / (1024 * 1024)).toFixed(2)
+      doc.text(`Tipo: ${anexo.type || "Não especificado"}`, margin + 10, yPos + 10)
+      doc.text(`Tamanho: ${fileSizeMB} MB`, margin + 10, yPos + 18)
+      doc.text(`(Arquivo anexado separadamente)`, margin + contentWidth / 2, yPos + 14)
+      
+      yPos += 35
+    }
+  }
+}
+
+// Função auxiliar para converter File para base64
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
+
+// Função auxiliar para obter dimensões da imagem
+function getImageDimensions(base64: string): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => resolve({ width: img.width, height: img.height })
+    img.onerror = reject
+    img.src = base64
+  })
 }
 
 function addHeader(doc: jsPDF, tipoRelatorio: string): void {
