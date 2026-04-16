@@ -177,24 +177,6 @@ export function FormServicos() {
     }
     fetchFuncionarios()
   }, [])
-  
-  // Atualizar emails internos quando técnicos forem selecionados
-  const selectedTecnicos = form.watch("tecnicos")
-  useEffect(() => {
-    if (selectedTecnicos && selectedTecnicos.length > 0 && funcionarios.length > 0) {
-      const emailsTecnicos = selectedTecnicos
-        .map(tecnicoNome => {
-          const func = funcionarios.find(f => f.name === tecnicoNome)
-          return func?.email
-        })
-        .filter(Boolean)
-        .join(", ")
-      
-      if (emailsTecnicos) {
-        form.setValue("emails", emailsTecnicos)
-      }
-    }
-  }, [selectedTecnicos, funcionarios, form])
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -213,6 +195,24 @@ export function FormServicos() {
       clienteNomeCpf: [],
     },
   })
+
+  // Atualizar emails internos quando técnicos forem selecionados
+  const selectedTecnicos = form.watch("tecnicos")
+  useEffect(() => {
+    if (selectedTecnicos && selectedTecnicos.length > 0 && funcionarios.length > 0) {
+      const emailsTecnicos = selectedTecnicos
+        .map(tecnicoNome => {
+          const func = funcionarios.find(f => f.name === tecnicoNome)
+          return func?.email
+        })
+        .filter(Boolean)
+        .join(", ")
+      
+      if (emailsTecnicos) {
+        form.setValue("emails", emailsTecnicos)
+      }
+    }
+  }, [selectedTecnicos, funcionarios, form])
 
   useEffect(() => {
     const estadoSelecionado = form.watch("estado")
