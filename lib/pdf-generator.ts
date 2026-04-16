@@ -313,7 +313,7 @@ function addServicosContent(doc: jsPDF, dados: any): void {
     yPos += 12
   }
 
-  // Borda da tabela
+  // Borda da tabela de técnicos
   doc.setDrawColor(COLORS.tableBorder[0], COLORS.tableBorder[1], COLORS.tableBorder[2])
   doc.setLineWidth(0.1)
   doc.roundedRect(
@@ -338,6 +338,57 @@ function addServicosContent(doc: jsPDF, dados: any): void {
     3,
     "S",
   )
+  
+  // SEÇÃO: INFORMAÇÕES DE CONTATO (Emails)
+  yPos += 15
+  
+  // Verificar se precisa de nova página
+  if (yPos > pageHeight - 60) {
+    doc.addPage()
+    addHeader(doc, "servicos")
+    yPos = 45
+  }
+  
+  yPos = addSectionTitle(doc, "INFORMAÇÕES DE CONTATO", margin, yPos)
+  
+  // Email do Cliente
+  doc.setFillColor(COLORS.tableRowEven[0], COLORS.tableRowEven[1], COLORS.tableRowEven[2])
+  doc.rect(margin, yPos, contentWidth, 12, "F")
+  
+  doc.setTextColor(COLORS.text[0], COLORS.text[1], COLORS.text[2])
+  doc.setFontSize(9)
+  doc.setFont("helvetica", "bold")
+  doc.text("Email do Cliente", margin + 10, yPos + 8)
+  
+  doc.setFont("helvetica", "normal")
+  const emailCliente = dados.emailCliente || "Não informado"
+  doc.text(emailCliente, margin + contentWidth / 2, yPos + 8)
+  
+  yPos += 12
+  
+  // Emails Internos (Técnicos da Rarotec)
+  doc.setFillColor(COLORS.tableRowOdd[0], COLORS.tableRowOdd[1], COLORS.tableRowOdd[2])
+  
+  const emailsInternos = dados.emails || "Não informado"
+  const splitEmails = doc.splitTextToSize(emailsInternos, contentWidth / 2 - 10)
+  const emailsHeight = Math.max(splitEmails.length * 6, 12)
+  
+  doc.rect(margin, yPos, contentWidth, emailsHeight, "F")
+  
+  doc.setTextColor(COLORS.text[0], COLORS.text[1], COLORS.text[2])
+  doc.setFontSize(9)
+  doc.setFont("helvetica", "bold")
+  doc.text("Emails Internos (Rarotec)", margin + 10, yPos + 8)
+  
+  doc.setFont("helvetica", "normal")
+  doc.text(splitEmails, margin + contentWidth / 2, yPos + 8)
+  
+  yPos += emailsHeight
+  
+  // Borda da tabela de contatos
+  doc.setDrawColor(COLORS.tableBorder[0], COLORS.tableBorder[1], COLORS.tableBorder[2])
+  doc.setLineWidth(0.1)
+  doc.roundedRect(margin, yPos - 12 - emailsHeight, contentWidth, 12 + emailsHeight, 3, 3, "S")
 }
 
 // Modificar a função addMigracaoContent para garantir que o conteúdo não seja cortado
