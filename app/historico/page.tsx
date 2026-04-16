@@ -125,7 +125,8 @@ export default function HistoricoPage() {
   const totalPages = data ? Math.ceil(data.total / limit) : 0
 
   const getTypeBadge = (tipo: string) => {
-    if (tipo === "servicos") {
+    // Aceita tanto abreviações (SV/MG) quanto nomes completos (servicos/migracao)
+    if (tipo === "servicos" || tipo === "SV") {
       return (
         <Badge variant="secondary" className="gap-1">
           <Server className="h-3 w-3" />
@@ -180,8 +181,8 @@ export default function HistoricoPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="todos">Todos os tipos</SelectItem>
-                      <SelectItem value="servicos">Serviços</SelectItem>
-                      <SelectItem value="migracao">Migração</SelectItem>
+                      <SelectItem value="SV">Serviços</SelectItem>
+                      <SelectItem value="MG">Migração</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

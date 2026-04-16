@@ -360,11 +360,14 @@ const validateStep = async (step: number): Promise<boolean> => {
           
           
           
+          // Abreviar tipo para caber no banco VARCHAR(2)
+          const tipoAbreviado = data.tipoRelatorio === "servicos" ? "SV" : "MG"
+          
           const saveResponse = await fetch("/api/relatorios", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              tipo: data.tipoRelatorio,
+              tipo: tipoAbreviado,
               cliente: clienteNome,
               municipio: data.municipio,
               estado: data.estado,
@@ -374,7 +377,14 @@ const validateStep = async (step: number): Promise<boolean> => {
             }),
           })
           
-          await saveResponse.json()
+          const saveResult = await saveResponse.json()
+          console.log("[v0] Resposta do salvamento:", saveResponse.status, saveResult)
+          
+          if (!saveResponse.ok) {
+            console.error("[v0] Erro ao salvar:", saveResult)
+          } else {
+            console.log("[v0] Relatório salvo com sucesso!")
+          }
         } catch (saveError) {
           console.error("[v0] Erro ao salvar relatório no histórico:", saveError)
           // Continua mesmo se falhar ao salvar, pois o PDF já foi gerado
