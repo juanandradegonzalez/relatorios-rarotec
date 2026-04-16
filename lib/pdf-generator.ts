@@ -1,6 +1,7 @@
 import { jsPDF } from "jspdf"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
+import { PDFDocument } from "pdf-lib"
 
 interface PDFGeneratorResult {
   success: boolean
@@ -313,7 +314,7 @@ function addServicosContent(doc: jsPDF, dados: any): void {
     yPos += 12
   }
 
-  // Borda da tabela
+  // Borda da tabela de técnicos
   doc.setDrawColor(COLORS.tableBorder[0], COLORS.tableBorder[1], COLORS.tableBorder[2])
   doc.setLineWidth(0.1)
   doc.roundedRect(
@@ -338,6 +339,57 @@ function addServicosContent(doc: jsPDF, dados: any): void {
     3,
     "S",
   )
+  
+  // SEÇÃO: INFORMAÇÕES DE CONTATO (Emails)
+  yPos += 15
+  
+  // Verificar se precisa de nova página
+  if (yPos > pageHeight - 60) {
+    doc.addPage()
+    addHeader(doc, "servicos")
+    yPos = 45
+  }
+  
+  yPos = addSectionTitle(doc, "INFORMAÇÕES DE CONTATO", margin, yPos)
+  
+  // Email do Cliente
+  doc.setFillColor(COLORS.tableRowEven[0], COLORS.tableRowEven[1], COLORS.tableRowEven[2])
+  doc.rect(margin, yPos, contentWidth, 12, "F")
+  
+  doc.setTextColor(COLORS.text[0], COLORS.text[1], COLORS.text[2])
+  doc.setFontSize(9)
+  doc.setFont("helvetica", "bold")
+  doc.text("Email do Cliente", margin + 10, yPos + 8)
+  
+  doc.setFont("helvetica", "normal")
+  const emailCliente = dados.emailCliente || "Não informado"
+  doc.text(emailCliente, margin + contentWidth / 2, yPos + 8)
+  
+  yPos += 12
+  
+  // Emails Internos (Técnicos da Rarotec)
+  doc.setFillColor(COLORS.tableRowOdd[0], COLORS.tableRowOdd[1], COLORS.tableRowOdd[2])
+  
+  const emailsInternos = dados.emails || "Não informado"
+  const splitEmails = doc.splitTextToSize(emailsInternos, contentWidth / 2 - 10)
+  const emailsHeight = Math.max(splitEmails.length * 6, 12)
+  
+  doc.rect(margin, yPos, contentWidth, emailsHeight, "F")
+  
+  doc.setTextColor(COLORS.text[0], COLORS.text[1], COLORS.text[2])
+  doc.setFontSize(9)
+  doc.setFont("helvetica", "bold")
+  doc.text("Emails Internos (Rarotec)", margin + 10, yPos + 8)
+  
+  doc.setFont("helvetica", "normal")
+  doc.text(splitEmails, margin + contentWidth / 2, yPos + 8)
+  
+  yPos += emailsHeight
+  
+  // Borda da tabela de contatos
+  doc.setDrawColor(COLORS.tableBorder[0], COLORS.tableBorder[1], COLORS.tableBorder[2])
+  doc.setLineWidth(0.1)
+  doc.roundedRect(margin, yPos - 12 - emailsHeight, contentWidth, 12 + emailsHeight, 3, 3, "S")
 }
 
 // Modificar a função addMigracaoContent para garantir que o conteúdo não seja cortado
@@ -808,17 +860,63 @@ export async function generatePDF({ tipoRelatorio, dados, anexos }: PDFGenerator
       addMigracaoContent(doc, dados)
     }
 
-    // Remover a chamada para addSignatures
-    // addSignatures(doc, dados) - Removido conforme solicitado
+    // Adicionar anexos (imagens) ao PDF - apenas para imagens
+    const imageAnexos = anexos?.filter(a => a.type.startsWith('image/')) || []
+    const pdfAnexos = anexos?.filter(a => a.type === 'application/pdf') || []
+    
+    if (imageAnexos.length > 0) {
+      await addAnexosToDoc(doc, imageAnexos, tipoRelatorio)
+    }
 
-    // Adicionar rodapé em todas as páginas
+    // Adicionar rodapé em todas as páginas do relatório principal
     const totalPages = doc.internal.getNumberOfPages()
     for (let i = 1; i <= totalPages; i++) {
       doc.setPage(i)
       addFooter(doc, i, totalPages)
     }
 
-    // Gerar o PDF como base64 e Blob (não salvar automaticamente)
+    // Gerar o PDF principal como ArrayBuffer
+    const mainPdfArrayBuffer = doc.output('arraybuffer')
+    
+    // Se houver PDFs anexados, mesclar usando pdf-lib
+    if (pdfAnexos.length > 0) {
+      try {
+        // Carregar o PDF principal
+        const mergedPdf = await PDFDocument.load(mainPdfArrayBuffer)
+        
+        // Mesclar cada PDF anexado
+        for (const pdfFile of pdfAnexos) {
+          try {
+            const pdfBytes = await pdfFile.arrayBuffer()
+            const attachedPdf = await PDFDocument.load(pdfBytes)
+            const copiedPages = await mergedPdf.copyPages(attachedPdf, attachedPdf.getPageIndices())
+            
+            copiedPages.forEach((page) => {
+              mergedPdf.addPage(page)
+            })
+          } catch (err) {
+            console.error(`Erro ao mesclar PDF anexado (${pdfFile.name}):`, err)
+          }
+        }
+        
+        // Gerar o PDF mesclado final
+        const mergedPdfBytes = await mergedPdf.save()
+        const mergedBlob = new Blob([mergedPdfBytes], { type: 'application/pdf' })
+        const mergedBase64 = await blobToBase64(mergedBlob)
+        
+        return {
+          success: true,
+          message: "O relatório foi gerado com sucesso, incluindo os documentos anexados.",
+          pdfBase64: mergedBase64,
+          pdfBlob: mergedBlob,
+        }
+      } catch (err) {
+        console.error("[v0] Erro ao mesclar PDFs:", err)
+        // Se falhar, retornar apenas o PDF principal
+      }
+    }
+    
+    // Se não houver PDFs para mesclar ou se falhar, retornar o PDF principal
     const pdfBase64 = doc.output('datauristring').split(',')[1]
     const pdfBlob = doc.output('blob')
 
@@ -835,6 +933,142 @@ export async function generatePDF({ tipoRelatorio, dados, anexos }: PDFGenerator
       message: "Ocorreu um erro ao gerar o relatório. Por favor, tente novamente.",
     }
   }
+}
+
+// Função para adicionar anexos (imagens) ao documento PDF
+async function addAnexosToDoc(doc: jsPDF, anexos: File[], tipoRelatorio: string): Promise<void> {
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const pageHeight = doc.internal.pageSize.getHeight()
+  const margin = 15
+  const contentWidth = pageWidth - 2 * margin
+  const maxImageHeight = pageHeight - 100 // Altura máxima para imagem
+  
+  // Adicionar nova página para anexos
+  doc.addPage()
+  addHeader(doc, tipoRelatorio)
+  
+  let yPos = 45
+  
+  // Título da seção de anexos
+  yPos = addSectionTitle(doc, "DOCUMENTOS ANEXADOS", margin, yPos)
+  
+  for (let i = 0; i < anexos.length; i++) {
+    const anexo = anexos[i]
+    const isImage = anexo.type.startsWith('image/')
+    
+    // Verificar se precisa de nova página
+    if (yPos > pageHeight - 80) {
+      doc.addPage()
+      addHeader(doc, tipoRelatorio)
+      yPos = 45
+    }
+    
+    // Título do anexo
+    doc.setFillColor(COLORS.tableRowEven[0], COLORS.tableRowEven[1], COLORS.tableRowEven[2])
+    doc.rect(margin, yPos, contentWidth, 12, "F")
+    
+    doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2])
+    doc.setFontSize(10)
+    doc.setFont("helvetica", "bold")
+    doc.text(`Anexo ${i + 1}: ${anexo.name}`, margin + 5, yPos + 8)
+    
+    yPos += 15
+    
+    if (isImage) {
+      try {
+        // Converter arquivo para base64
+        const base64 = await fileToBase64(anexo)
+        
+        // Obter dimensões da imagem
+        const imgDimensions = await getImageDimensions(base64)
+        
+        // Calcular dimensões proporcionais
+        let imgWidth = contentWidth - 10
+        let imgHeight = (imgDimensions.height / imgDimensions.width) * imgWidth
+        
+        // Limitar altura máxima
+        if (imgHeight > maxImageHeight) {
+          imgHeight = maxImageHeight
+          imgWidth = (imgDimensions.width / imgDimensions.height) * imgHeight
+        }
+        
+        // Centralizar imagem
+        const imgX = margin + (contentWidth - imgWidth) / 2
+        
+        // Verificar se cabe na página atual
+        if (yPos + imgHeight > pageHeight - 30) {
+          doc.addPage()
+          addHeader(doc, tipoRelatorio)
+          yPos = 45
+        }
+        
+        // Adicionar borda/moldura para a imagem
+        doc.setDrawColor(COLORS.tableBorder[0], COLORS.tableBorder[1], COLORS.tableBorder[2])
+        doc.setLineWidth(0.3)
+        doc.rect(imgX - 2, yPos - 2, imgWidth + 4, imgHeight + 4)
+        
+        // Adicionar imagem
+        doc.addImage(base64, 'JPEG', imgX, yPos, imgWidth, imgHeight)
+        
+        yPos += imgHeight + 15
+      } catch (error) {
+        // Se falhar ao adicionar imagem, mostrar placeholder
+        doc.setTextColor(COLORS.textLight[0], COLORS.textLight[1], COLORS.textLight[2])
+        doc.setFontSize(9)
+        doc.setFont("helvetica", "italic")
+        doc.text(`[Imagem não pôde ser carregada: ${anexo.name}]`, margin + 5, yPos + 5)
+        yPos += 15
+      }
+    } else {
+      // Para arquivos não-imagem, apenas listar informações
+      doc.setFillColor(COLORS.sectionBg[0], COLORS.sectionBg[1], COLORS.sectionBg[2])
+      doc.roundedRect(margin, yPos, contentWidth, 25, 3, 3, "F")
+      
+      doc.setTextColor(COLORS.text[0], COLORS.text[1], COLORS.text[2])
+      doc.setFontSize(9)
+      doc.setFont("helvetica", "normal")
+      
+      const fileSizeMB = (anexo.size / (1024 * 1024)).toFixed(2)
+      doc.text(`Tipo: ${anexo.type || "Não especificado"}`, margin + 10, yPos + 10)
+      doc.text(`Tamanho: ${fileSizeMB} MB`, margin + 10, yPos + 18)
+      doc.text(`(Arquivo anexado separadamente)`, margin + contentWidth / 2, yPos + 14)
+      
+      yPos += 35
+    }
+  }
+}
+
+// Função auxiliar para converter File para base64
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
+
+// Função auxiliar para obter dimensões da imagem
+function getImageDimensions(base64: string): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => resolve({ width: img.width, height: img.height })
+    img.onerror = reject
+    img.src = base64
+  })
+}
+
+// Função auxiliar para converter Blob para base64
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      const base64 = (reader.result as string).split(',')[1]
+      resolve(base64)
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(blob)
+  })
 }
 
 function addHeader(doc: jsPDF, tipoRelatorio: string): void {
