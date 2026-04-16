@@ -154,8 +154,13 @@ export async function POST(request: NextRequest) {
       success: true, 
       relatorio: result[0] 
     })
-  } catch (error) {
-    console.error('Error creating relatorio:', error)
-    return NextResponse.json({ error: 'Erro ao criar relatório' }, { status: 500 })
+  } catch (error: any) {
+    console.error('[v0] Error creating relatorio:', error)
+    console.error('[v0] Error message:', error?.message)
+    console.error('[v0] Error code:', error?.code)
+    return NextResponse.json({ 
+      error: 'Erro ao criar relatório', 
+      details: error?.message || 'Erro desconhecido'
+    }, { status: 500 })
   }
 }
