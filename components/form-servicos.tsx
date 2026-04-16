@@ -177,6 +177,24 @@ export function FormServicos() {
     }
     fetchFuncionarios()
   }, [])
+  
+  // Atualizar emails internos quando técnicos forem selecionados
+  const selectedTecnicos = form.watch("tecnicos")
+  useEffect(() => {
+    if (selectedTecnicos && selectedTecnicos.length > 0 && funcionarios.length > 0) {
+      const emailsTecnicos = selectedTecnicos
+        .map(tecnicoNome => {
+          const func = funcionarios.find(f => f.name === tecnicoNome)
+          return func?.email
+        })
+        .filter(Boolean)
+        .join(", ")
+      
+      if (emailsTecnicos) {
+        form.setValue("emails", emailsTecnicos)
+      }
+    }
+  }, [selectedTecnicos, funcionarios, form])
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -315,11 +333,8 @@ const validateStep = async (step: number): Promise<boolean> => {
   }
 
   const onSubmit = async (data: FormValues) => {
-    console.log("[v0] onSubmit chamado - currentStep:", currentStep)
-    
     // Só gera o PDF se estiver na última etapa
     if (currentStep !== steps.length - 1) {
-      console.log("[v0] Não está na última etapa, ignorando submit")
       return
     }
     
@@ -348,7 +363,7 @@ const validateStep = async (step: number): Promise<boolean> => {
                 : data.dataServico)
             : new Date().toISOString().split('T')[0]
           
-          console.log("[v0] Salvando relatório no banco:", { clienteNome, municipio: data.municipio, estado: data.estado, dataAtendimento })
+          
           
           const saveResponse = await fetch("/api/relatorios", {
             method: "POST",
@@ -364,12 +379,7 @@ const validateStep = async (step: number): Promise<boolean> => {
             }),
           })
           
-          const saveResult = await saveResponse.json()
-          console.log("[v0] Resultado do salvamento:", saveResult)
-          
-          if (!saveResponse.ok) {
-            console.error("[v0] Erro na resposta da API:", saveResult)
-          }
+          await saveResponse.json()
         } catch (saveError) {
           console.error("[v0] Erro ao salvar relatório no histórico:", saveError)
           // Continua mesmo se falhar ao salvar, pois o PDF já foi gerado
@@ -408,10 +418,6 @@ const handleSendEmail = async () => {
     const emails = form.getValues("emails")
     const emailCliente = form.getValues("emailCliente")
     
-    console.log("[v0] handleSendEmail chamado")
-    console.log("[v0] emails:", emails)
-    console.log("[v0] emailCliente:", emailCliente)
-    
     // Combinar emails internos + email do cliente
     const allEmails: string[] = []
     if (emails && emails.trim()) {
@@ -420,8 +426,6 @@ const handleSendEmail = async () => {
     if (emailCliente && emailCliente.trim()) {
       allEmails.push(emailCliente.trim())
     }
-    
-    console.log("[v0] allEmails:", allEmails)
     
     if (allEmails.length === 0) {
       toast({
@@ -537,7 +541,17 @@ const handleSendEmail = async () => {
 
   return (
     <Form {...form}>
-      <form ref={formRef} onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form 
+          ref={formRef} 
+          onSubmit={form.handleSubmit(onSubmit)} 
+          onKeyDown={(e) => {
+            // Prevenir submit ao pressionar Enter (exceto no botão de submit)
+            if (e.key === 'Enter' && e.target instanceof HTMLInputElement) {
+              e.preventDefault()
+            }
+          }}
+          className="space-y-8"
+        >
         <Stepper steps={steps} currentStep={currentStep} />
 
 {/* Step 0: Tipo de Relatório */}
